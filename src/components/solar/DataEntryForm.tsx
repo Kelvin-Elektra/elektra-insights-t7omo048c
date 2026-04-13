@@ -15,6 +15,14 @@ import { Plus, Trash2, Zap } from 'lucide-react'
 export function DataEntryForm() {
   const { draftEntries, setDraftEntries, generateReport } = useSolar()
 
+  const handleMonthChange = (id: string, value: string) => {
+    let formatted = value.replace(/\D/g, '')
+    if (formatted.length > 2) {
+      formatted = formatted.substring(0, 2) + '/' + formatted.substring(2, 6)
+    }
+    updateRow(id, 'month', formatted)
+  }
+
   const addRow = () => {
     setDraftEntries([
       ...draftEntries,
@@ -34,7 +42,9 @@ export function DataEntryForm() {
     <Card className="flex flex-col shadow-sm border-border/50 bg-card/50 backdrop-blur-sm">
       <CardHeader className="pb-4">
         <CardTitle className="text-xl">Dados de Consumo</CardTitle>
-        <CardDescription>Insira o histórico de consumo e energia recebida por mês.</CardDescription>
+        <CardDescription>
+          Insira o histórico de consumo e energia recebida (injetada) por mês.
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 space-y-4">
         {draftEntries.length === 0 ? (
@@ -48,13 +58,15 @@ export function DataEntryForm() {
                 key={entry.id}
                 className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end animate-slide-down bg-background p-4 sm:p-3 rounded-lg border shadow-sm transition-all hover:border-primary/30"
               >
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Mês/Ano</Label>
+                <div className="space-y-1.5 w-24 sm:w-auto">
+                  <Label className="text-xs font-semibold text-muted-foreground">Competência</Label>
                   <Input
-                    type="month"
+                    type="text"
+                    placeholder="MM/AAAA"
+                    maxLength={7}
                     value={entry.month}
-                    onChange={(e) => updateRow(entry.id, 'month', e.target.value)}
-                    className="h-9 text-sm"
+                    onChange={(e) => handleMonthChange(entry.id, e.target.value)}
+                    className="h-9 text-sm text-center"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -111,7 +123,7 @@ export function DataEntryForm() {
           onClick={generateReport}
           disabled={draftEntries.length === 0}
         >
-          <Zap className="h-5 w-5 mr-2" /> Gerar Relatório
+          <Zap className="h-5 w-5 mr-2" /> Analisar Dados{' '}
         </Button>
       </CardFooter>
     </Card>

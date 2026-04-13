@@ -18,12 +18,12 @@ interface SolarContextType {
 export const SolarContext = createContext<SolarContextType | undefined>(undefined)
 
 const initialMockData: SolarEntry[] = [
-  { id: '1', month: '2023-08', consumption: 450, received: 300 },
-  { id: '2', month: '2023-09', consumption: 420, received: 350 },
-  { id: '3', month: '2023-10', consumption: 500, received: 280 },
-  { id: '4', month: '2023-11', consumption: 480, received: 310 },
-  { id: '5', month: '2023-12', consumption: 600, received: 400 },
-  { id: '6', month: '2024-01', consumption: 550, received: 380 },
+  { id: '1', month: '08/2023', consumption: 450, received: 300 },
+  { id: '2', month: '09/2023', consumption: 420, received: 350 },
+  { id: '3', month: '10/2023', consumption: 500, received: 280 },
+  { id: '4', month: '11/2023', consumption: 480, received: 310 },
+  { id: '5', month: '12/2023', consumption: 600, received: 400 },
+  { id: '6', month: '01/2024', consumption: 550, received: 380 },
 ]
 
 export const SolarProvider = ({ children }: { children: ReactNode }) => {
@@ -31,8 +31,13 @@ export const SolarProvider = ({ children }: { children: ReactNode }) => {
   const [reportEntries, setReportEntries] = useState<SolarEntry[] | null>(initialMockData)
 
   const generateReport = () => {
-    // Sort entries by month (YYYY-MM) ascending
-    const sorted = [...draftEntries].sort((a, b) => a.month.localeCompare(b.month))
+    // Sort entries by month (MM/YYYY) ascending
+    const sorted = [...draftEntries].sort((a, b) => {
+      const [mA, yA] = a.month.split('/')
+      const [mB, yB] = b.month.split('/')
+      if (yA !== yB) return (yA || '').localeCompare(yB || '')
+      return (mA || '').localeCompare(mB || '')
+    })
     setReportEntries(sorted)
   }
 

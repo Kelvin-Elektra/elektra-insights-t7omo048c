@@ -9,7 +9,15 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { BarChart, Bar, XAxis, CartesianGrid, AreaChart, Area } from 'recharts'
-import { AlertCircle, TrendingDown, Battery, BatteryWarning, SunMedium } from 'lucide-react'
+import {
+  AlertCircle,
+  TrendingDown,
+  Battery,
+  BatteryWarning,
+  SunMedium,
+  Download,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const chartConfig = {
   consumption: {
@@ -53,12 +61,14 @@ export function ReportDashboard() {
     const deficit = Math.max(0, (e.consumption || 0) - (e.received || 0))
     let monthFormatted = e.month || 'N/A'
 
-    if (e.month) {
-      const [year, m] = e.month.split('-')
-      const date = new Date(parseInt(year), parseInt(m) - 1)
-      monthFormatted = date
-        .toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
-        .replace('.', '')
+    if (e.month && e.month.includes('/')) {
+      const [m, y] = e.month.split('/')
+      const date = new Date(parseInt(y), parseInt(m) - 1)
+      if (!isNaN(date.getTime())) {
+        monthFormatted = date
+          .toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
+          .replace('.', '')
+      }
     }
 
     return {
@@ -78,9 +88,47 @@ export function ReportDashboard() {
   const coveragePercent = totalConsumption ? (totalReceived / totalConsumption) * 100 : 0
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up print:m-0 print:space-y-4">
+      <style>{`
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          @page { margin: 10mm; size: A4 portrait; }
+          .lucide { width: 1.2rem; height: 1.2rem; }
+        }
+      `}</style>
+
+      {/* Print Header */}
+      <div className="hidden print:block text-center border-b pb-6 mb-6">
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <SunMedium className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Relatório de Energia Solar
+          </h1>
+        </div>
+        <p className="text-muted-foreground text-sm">
+          Demonstrativo de consumo e geração • Gerado em {new Date().toLocaleDateString('pt-BR')}
+        </p>
+      </div>
+
+      {/* Action Bar */}
+      <div className="flex items-center justify-between print:hidden bg-muted/30 p-4 rounded-xl border border-border/50">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold tracking-tight">Análise de Desempenho</h2>
+          <p className="text-sm text-muted-foreground">
+            Visualize o balanço energético da sua unidade e exporte o documento.
+          </p>
+        </div>
+        <Button
+          onClick={() => window.print()}
+          className="shadow-sm transition-all hover:scale-105"
+          size="sm"
+        >
+          <Download className="h-4 w-4 mr-2" /> Gerar PDF
+        </Button>
+      </div>
+
       {/* Highlight Card */}
-      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 shadow-sm relative overflow-hidden">
+      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 shadow-sm relative overflow-hidden print:shadow-none print:border-border">
         <div className="absolute top-0 right-0 p-8 opacity-10 text-primary pointer-events-none">
           <AlertCircle className="w-32 h-32" />
         </div>
@@ -137,8 +185,8 @@ export function ReportDashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card className="shadow-sm">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 print:block print:space-y-6">
+        <Card className="shadow-sm print:break-inside-avoid print:shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold text-muted-foreground">
               Consumo vs Recebida
@@ -177,7 +225,7 @@ export function ReportDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
+        <Card className="shadow-sm print:break-inside-avoid print:shadow-none mt-6 xl:mt-0">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-semibold text-muted-foreground">
               Evolução do Déficit
@@ -215,7 +263,7 @@ export function ReportDashboard() {
 
 function MetricCard({ title, value, suffix = ' kWh', icon: Icon, color }: any) {
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow">
+    <Card className="shadow-sm hover:shadow-md transition-shadow print:shadow-none print:border-border print:break-inside-avoid">
       <CardContent className="p-5 flex flex-col items-start gap-3">
         <div className={`p-2 rounded-lg bg-muted/50 ${color}`}>
           <Icon className="h-5 w-5" />
