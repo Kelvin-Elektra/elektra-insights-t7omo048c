@@ -8,6 +8,10 @@ export interface SolarEntry {
 }
 
 interface SolarContextType {
+  consumerName: string
+  setConsumerName: React.Dispatch<React.SetStateAction<string>>
+  ucNumber: string
+  setUcNumber: React.Dispatch<React.SetStateAction<string>>
   draftEntries: SolarEntry[]
   setDraftEntries: React.Dispatch<React.SetStateAction<SolarEntry[]>>
   reportEntries: SolarEntry[] | null
@@ -27,6 +31,8 @@ const initialMockData: SolarEntry[] = [
 ]
 
 export const SolarProvider = ({ children }: { children: ReactNode }) => {
+  const [consumerName, setConsumerName] = useState<string>('')
+  const [ucNumber, setUcNumber] = useState<string>('')
   const [draftEntries, setDraftEntries] = useState<SolarEntry[]>(initialMockData)
   const [reportEntries, setReportEntries] = useState<SolarEntry[] | null>(initialMockData)
 
@@ -48,7 +54,17 @@ export const SolarProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <SolarContext.Provider
-      value={{ draftEntries, setDraftEntries, reportEntries, generateReport, reset }}
+      value={{
+        consumerName,
+        setConsumerName,
+        ucNumber,
+        setUcNumber,
+        draftEntries,
+        setDraftEntries,
+        reportEntries,
+        generateReport,
+        reset,
+      }}
     >
       {children}
     </SolarContext.Provider>

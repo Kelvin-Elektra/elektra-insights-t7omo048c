@@ -35,7 +35,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function ReportDashboard() {
-  const { reportEntries } = useSolar()
+  const { reportEntries, consumerName, ucNumber } = useSolar()
 
   if (!reportEntries || reportEntries.length === 0) {
     return (
@@ -88,25 +88,47 @@ export function ReportDashboard() {
   const coveragePercent = totalConsumption ? (totalReceived / totalConsumption) * 100 : 0
 
   return (
-    <div className="space-y-6 animate-fade-in-up print:m-0 print:space-y-4">
+    <div className="space-y-6 animate-fade-in-up print:m-0 print:space-y-6 max-w-5xl mx-auto">
       <style>{`
         @media print {
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          @page { margin: 10mm; size: A4 portrait; }
+          body { 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+            background: white;
+            padding: 20mm; /* Extra padding to avoid cutoffs when margins are zero */
+          }
+          @page { margin: 0; size: A4 portrait; }
           .lucide { width: 1.2rem; height: 1.2rem; }
         }
       `}</style>
 
       {/* Print Header */}
       <div className="hidden print:block text-center border-b pb-6 mb-6">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <SunMedium className="h-8 w-8 text-primary" />
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <SunMedium className="h-10 w-10 text-primary" />
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Relatório de Energia Solar
           </h1>
         </div>
+
+        {(consumerName || ucNumber) && (
+          <div className="flex justify-center items-center gap-6 text-base font-medium mb-4 bg-muted/20 py-2 rounded-lg inline-flex px-8">
+            {consumerName && (
+              <div>
+                <span className="text-muted-foreground font-normal">Consumidor:</span>{' '}
+                {consumerName}
+              </div>
+            )}
+            {ucNumber && (
+              <div>
+                <span className="text-muted-foreground font-normal">UC:</span> {ucNumber}
+              </div>
+            )}
+          </div>
+        )}
+
         <p className="text-muted-foreground text-sm">
-          Demonstrativo de consumo e geração • Gerado em {new Date().toLocaleDateString('pt-BR')}
+          Demonstrativo de balanço energético • Gerado em {new Date().toLocaleDateString('pt-BR')}
         </p>
       </div>
 
@@ -164,7 +186,7 @@ export function ReportDashboard() {
           color="text-secondary"
         />
         <MetricCard
-          title="Média de Créditos"
+          title="Média Injetada"
           value={avgReceived}
           icon={SunMedium}
           color="text-primary"
@@ -185,15 +207,18 @@ export function ReportDashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 print:block print:space-y-6">
-        <Card className="shadow-sm print:break-inside-avoid print:shadow-none">
-          <CardHeader className="pb-2">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 print:flex print:flex-col print:items-center print:gap-8 print:w-full">
+        <Card className="shadow-sm print:break-inside-avoid print:shadow-none print:w-full">
+          <CardHeader className="pb-2 print:text-center">
             <CardTitle className="text-base font-semibold text-muted-foreground">
-              Consumo vs Recebida
+              Consumo vs Energia Recebida
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px] w-full aspect-auto">
+          <CardContent className="print:flex print:justify-center">
+            <ChartContainer
+              config={chartConfig}
+              className="h-[300px] w-full aspect-auto print:max-w-3xl"
+            >
               <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.5} />
                 <XAxis
@@ -225,14 +250,17 @@ export function ReportDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm print:break-inside-avoid print:shadow-none mt-6 xl:mt-0">
-          <CardHeader className="pb-2">
+        <Card className="shadow-sm print:break-inside-avoid print:shadow-none mt-6 xl:mt-0 print:w-full">
+          <CardHeader className="pb-2 print:text-center">
             <CardTitle className="text-base font-semibold text-muted-foreground">
-              Evolução do Déficit
+              Evolução do Déficit Energético
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px] w-full aspect-auto">
+          <CardContent className="print:flex print:justify-center">
+            <ChartContainer
+              config={chartConfig}
+              className="h-[300px] w-full aspect-auto print:max-w-3xl"
+            >
               <AreaChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.5} />
                 <XAxis
@@ -256,6 +284,11 @@ export function ReportDashboard() {
             </ChartContainer>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Print Footer */}
+      <div className="hidden print:block mt-12 pt-6 border-t text-center text-sm font-medium text-muted-foreground print:break-inside-avoid">
+        <p>Produto por Elektra Engenharia & Soluções</p>
       </div>
     </div>
   )
