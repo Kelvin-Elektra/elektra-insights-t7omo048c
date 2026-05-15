@@ -5,7 +5,8 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeProvider } from 'next-themes'
 import { SolarProvider } from '@/stores/solar-context'
 
-import Index from './pages/Index'
+import Hub from './pages/Hub'
+import UCAnalysis from './pages/UCAnalysis'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 
@@ -18,7 +19,8 @@ const App = () => (
           <Sonner />
           <Routes>
             <Route element={<Layout />}>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Hub />} />
+              <Route path="/uc-analysis" element={<UCAnalysis />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

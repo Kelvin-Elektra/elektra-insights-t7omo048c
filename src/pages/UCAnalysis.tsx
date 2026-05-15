@@ -1,9 +1,9 @@
 import { DataEntryForm } from '@/components/solar/DataEntryForm'
 import { ReportDashboard } from '@/components/solar/ReportDashboard'
 
-const Index = () => {
+export default function UCAnalysis() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start print:block">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start print:block print:w-full print:m-0 print:p-0">
       <div className="lg:col-span-4 lg:sticky lg:top-24 print:hidden">
         <DataEntryForm />
       </div>
@@ -13,5 +13,3 @@ const Index = () => {
     </div>
   )
 }
-
-export default Index

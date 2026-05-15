@@ -95,10 +95,15 @@ export function ReportDashboard() {
             -webkit-print-color-adjust: exact; 
             print-color-adjust: exact; 
             background: white;
-            padding: 20mm; /* Extra padding to avoid cutoffs when margins are zero */
+            padding: 15mm; 
           }
           @page { margin: 0; size: A4 portrait; }
           .lucide { width: 1.2rem; height: 1.2rem; }
+          
+          /* Remove browser headers/footers */
+          @page :first {
+            margin-top: 0;
+          }
         }
       `}</style>
 
@@ -128,7 +133,8 @@ export function ReportDashboard() {
         )}
 
         <p className="text-muted-foreground text-sm">
-          Demonstrativo de balanço energético • Gerado em {new Date().toLocaleDateString('pt-BR')}
+          Análise de Energia da Unidade Consumidora • Gerado em{' '}
+          {new Date().toLocaleDateString('pt-BR')}
         </p>
       </div>
 
@@ -287,8 +293,11 @@ export function ReportDashboard() {
       </div>
 
       {/* Print Footer */}
-      <div className="hidden print:block mt-12 pt-6 border-t text-center text-sm font-medium text-muted-foreground print:break-inside-avoid">
+      <div className="hidden print:block mt-auto pt-8 border-t text-center text-sm font-bold text-foreground print:break-inside-avoid w-full">
         <p>Produto por Elektra Engenharia & Soluções</p>
+        <p className="text-xs text-muted-foreground font-normal mt-1">
+          Elektra Insights - Sistema de Análise Energética
+        </p>
       </div>
     </div>
   )
