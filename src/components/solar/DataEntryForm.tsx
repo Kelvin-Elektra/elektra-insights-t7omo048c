@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus, Trash2, Zap } from 'lucide-react'
+import { toast } from 'sonner'
 
 export function DataEntryForm() {
   const {
@@ -29,6 +30,11 @@ export function DataEntryForm() {
       formatted = formatted.substring(0, 2) + '/' + formatted.substring(2, 6)
     }
     updateRow(id, 'month', formatted)
+  }
+
+  const handleGenerateReport = async () => {
+    await generateReport()
+    toast.success('Relatório gerado e salvo com sucesso!')
   }
 
   const addRow = () => {
@@ -161,7 +167,7 @@ export function DataEntryForm() {
         <Button
           className="w-full hover:scale-[1.02] transition-transform shadow-md"
           size="lg"
-          onClick={generateReport}
+          onClick={handleGenerateReport}
           disabled={draftEntries.length === 0}
         >
           <Zap className="h-5 w-5 mr-2" /> Analisar Dados{' '}

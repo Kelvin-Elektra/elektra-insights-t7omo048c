@@ -3,10 +3,13 @@ import { Sun, Moon, PlusCircle, Zap, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTheme } from 'next-themes'
 import { useSolar } from '@/stores/solar-context'
+import { useAuth } from '@/hooks/use-auth'
+import { LogOut } from 'lucide-react'
 
 export default function Layout() {
   const { theme, setTheme } = useTheme()
   const { reset } = useSolar()
+  const { logout } = useAuth()
   const location = useLocation()
   const isHub = location.pathname === '/'
 
@@ -56,6 +59,15 @@ export default function Layout() {
               <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
               <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               <span className="sr-only">Toggle theme</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={logout}
+              className="hover:bg-destructive/10 hover:text-destructive transition-colors text-muted-foreground"
+              title="Sair"
+            >
+              <LogOut className="h-5 w-5" />
             </Button>
           </div>
         </div>

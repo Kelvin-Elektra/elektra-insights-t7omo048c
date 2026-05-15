@@ -7,6 +7,8 @@ export interface SolarEntry {
   received: number
 }
 
+import pb from '@/lib/pocketbase/client'
+
 interface SolarContextType {
   consumerName: string
   setConsumerName: React.Dispatch<React.SetStateAction<string>>
@@ -15,8 +17,10 @@ interface SolarContextType {
   draftEntries: SolarEntry[]
   setDraftEntries: React.Dispatch<React.SetStateAction<SolarEntry[]>>
   reportEntries: SolarEntry[] | null
-  generateReport: () => void
+  generateReport: () => Promise<void>
   reset: () => void
+  loadAnalysis: (record: any) => void
+  currentAnalysisId: string | null
 }
 
 export const SolarContext = createContext<SolarContextType | undefined>(undefined)
@@ -24,10 +28,6 @@ export const SolarContext = createContext<SolarContextType | undefined>(undefine
 const initialMockData: SolarEntry[] = [
   { id: '1', month: '08/2023', consumption: 450, received: 300 },
   { id: '2', month: '09/2023', consumption: 420, received: 350 },
-  { id: '3', month: '10/2023', consumption: 500, received: 280 },
-  { id: '4', month: '11/2023', consumption: 480, received: 310 },
-  { id: '5', month: '12/2023', consumption: 600, received: 400 },
-  { id: '6', month: '01/2024', consumption: 550, received: 380 },
 ]
 
 export const SolarProvider = ({ children }: { children: ReactNode }) => {
@@ -35,8 +35,9 @@ export const SolarProvider = ({ children }: { children: ReactNode }) => {
   const [ucNumber, setUcNumber] = useState<string>('')
   const [draftEntries, setDraftEntries] = useState<SolarEntry[]>(initialMockData)
   const [reportEntries, setReportEntries] = useState<SolarEntry[] | null>(initialMockData)
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null)
 
-  const generateReport = () => {
+  const generateReport = async () => {
     // Sort entries by month (MM/YYYY) ascending
     const sorted = [...draftEntries].sort((a, b) => {
       const [mA, yA] = a.month.split('/')
@@ -45,9 +46,38 @@ export const SolarProvider = ({ children }: { children: ReactNode }) => {
       return (mA || '').localeCompare(mB || '')
     })
     setReportEntries(sorted)
+
+    try {
+      const payload = {
+        company: pb.authStore.record?.company,
+        consumer_name: consumerName,
+        uc_number: ucNumber,
+        report_data: sorted,
+      }
+
+      if (currentAnalysisId) {
+        await pb.collection('uc_analyses').update(currentAnalysisId, payload)
+      } else {
+        const record = await pb.collection('uc_analyses').create(payload)
+        setCurrentAnalysisId(record.id)
+      }
+    } catch (e) {
+      console.error('Failed to save analysis', e)
+    }
+  }
+
+  const loadAnalysis = (record: any) => {
+    setCurrentAnalysisId(record.id)
+    setConsumerName(record.consumer_name || '')
+    setUcNumber(record.uc_number || '')
+    setDraftEntries(record.report_data || [])
+    setReportEntries(record.report_data || [])
   }
 
   const reset = () => {
+    setCurrentAnalysisId(null)
+    setConsumerName('')
+    setUcNumber('')
     setDraftEntries([])
     setReportEntries(null)
   }
@@ -64,6 +94,8 @@ export const SolarProvider = ({ children }: { children: ReactNode }) => {
         reportEntries,
         generateReport,
         reset,
+        loadAnalysis,
+        currentAnalysisId,
       }}
     >
       {children}
