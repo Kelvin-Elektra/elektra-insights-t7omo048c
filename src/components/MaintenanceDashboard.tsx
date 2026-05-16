@@ -67,6 +67,28 @@ export default function MaintenanceDashboard() {
     pb.collection('companies').getFullList({ sort: 'name' }).then(setCompanies).catch(console.error)
   }, [])
 
+  const handleGlobalLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const elektra = companies.find((c) => c.name.toLowerCase().includes('elektra'))
+      if (!elektra) {
+        toast.error('Empresa Elektra não encontrada no sistema.')
+        return
+      }
+      const formData = new FormData()
+      formData.append('logo', file)
+      await pb.collection('companies').update(elektra.id, formData)
+      toast.success('Logo global atualizado com sucesso! Atualize a página para ver a mudança.')
+
+      const updated = await pb.collection('companies').getFullList({ sort: 'name' })
+      setCompanies(updated)
+    } catch (error) {
+      toast.error('Erro ao atualizar o logo.')
+    }
+  }
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -110,6 +132,39 @@ export default function MaintenanceDashboard() {
           </Select>
         </div>
       </div>
+
+      <Card className="border-primary/20 bg-primary/5 mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Settings className="h-5 w-5" />
+            Configurações Globais do Sistema
+          </CardTitle>
+          <CardDescription>
+            Gerencie a identidade visual padrão (logo da Elektra) exibida no topo do sistema para
+            todos os usuários.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <Label htmlFor="logo-upload" className="font-semibold">
+              Logo Global do Sistema
+            </Label>
+            <div className="flex items-center gap-4">
+              <Input
+                id="logo-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleGlobalLogoUpload}
+                className="max-w-sm bg-background"
+              />
+              <Upload className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Recomendado: Imagem com fundo transparente (PNG) e altura de 32px.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="border-l-4 border-l-blue-500">

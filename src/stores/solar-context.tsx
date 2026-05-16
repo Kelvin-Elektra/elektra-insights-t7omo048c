@@ -25,16 +25,23 @@ interface SolarContextType {
 
 export const SolarContext = createContext<SolarContextType | undefined>(undefined)
 
-const initialMockData: SolarEntry[] = [
-  { id: '1', month: '08/2023', consumption: 450, received: 300 },
-  { id: '2', month: '09/2023', consumption: 420, received: 350 },
-]
+const getCurrentMonths = (): SolarEntry[] => {
+  const dates = []
+  const now = new Date()
+  for (let i = 0; i < 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const yyyy = d.getFullYear()
+    dates.push(`${mm}/${yyyy}`)
+  }
+  return dates.map((m) => ({ id: crypto.randomUUID(), month: m, consumption: 0, received: 0 }))
+}
 
 export const SolarProvider = ({ children }: { children: ReactNode }) => {
   const [consumerName, setConsumerName] = useState<string>('')
   const [ucNumber, setUcNumber] = useState<string>('')
-  const [draftEntries, setDraftEntries] = useState<SolarEntry[]>(initialMockData)
-  const [reportEntries, setReportEntries] = useState<SolarEntry[] | null>(initialMockData)
+  const [draftEntries, setDraftEntries] = useState<SolarEntry[]>(getCurrentMonths())
+  const [reportEntries, setReportEntries] = useState<SolarEntry[] | null>(null)
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null)
 
   const generateReport = async () => {
@@ -78,7 +85,7 @@ export const SolarProvider = ({ children }: { children: ReactNode }) => {
     setCurrentAnalysisId(null)
     setConsumerName('')
     setUcNumber('')
-    setDraftEntries([])
+    setDraftEntries(getCurrentMonths())
     setReportEntries(null)
   }
 

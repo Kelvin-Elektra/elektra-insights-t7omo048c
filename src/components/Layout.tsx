@@ -14,11 +14,16 @@ export default function Layout() {
   const location = useLocation()
 
   const [company, setCompany] = useState<any>(null)
+  const [systemCompany, setSystemCompany] = useState<any>(null)
 
   useEffect(() => {
     if (user?.company) {
       pb.collection('companies').getOne(user.company).then(setCompany).catch(console.error)
     }
+    pb.collection('companies')
+      .getFirstListItem(`name ~ "Elektra"`)
+      .then(setSystemCompany)
+      .catch(() => {})
   }, [user?.company])
 
   const isAdmin = user?.role_company === 'admin' || user?.role === 'User_owner'
@@ -84,10 +89,10 @@ export default function Layout() {
             </Sheet>
 
             <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              {company?.logo ? (
+              {systemCompany?.logo ? (
                 <img
-                  src={pb.files.getURL(company, company.logo)}
-                  alt={company.name}
+                  src={pb.files.getURL(systemCompany, systemCompany.logo)}
+                  alt="Elektra Insights"
                   className="h-8 max-w-[120px] object-contain"
                 />
               ) : (
@@ -115,6 +120,14 @@ export default function Layout() {
                 <PlusCircle className="h-4 w-4 mr-2" />
                 <span>Novo Relatório</span>
               </Button>
+            )}
+            {company?.logo && (
+              <img
+                src={pb.files.getURL(company, company.logo)}
+                alt={company.name}
+                className="h-8 w-auto object-contain mr-2 max-w-[120px] hidden sm:block border rounded bg-white p-1"
+                title={company.name}
+              />
             )}
             <Button
               variant="ghost"

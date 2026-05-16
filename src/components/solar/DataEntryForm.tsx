@@ -1,19 +1,15 @@
 import { useSolar, SolarEntry } from '@/stores/solar-context'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus, Trash2, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 
-export function DataEntryForm() {
+export interface DataEntryFormProps {
+  onSuccess?: () => void
+}
+
+export function DataEntryForm({ onSuccess }: DataEntryFormProps) {
   const {
     consumerName,
     setConsumerName,
@@ -35,12 +31,22 @@ export function DataEntryForm() {
   const handleGenerateReport = async () => {
     await generateReport()
     toast.success('Relatório gerado e salvo com sucesso!')
+    if (onSuccess) onSuccess()
   }
 
   const addRow = () => {
+    const last = draftEntries[draftEntries.length - 1]
+    let nextMonthStr = ''
+    if (last && last.month.match(/^\d{2}\/\d{4}$/)) {
+      const [m, y] = last.month.split('/')
+      const d = new Date(parseInt(y), parseInt(m) - 2, 1)
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const yyyy = d.getFullYear()
+      nextMonthStr = `${mm}/${yyyy}`
+    }
     setDraftEntries([
       ...draftEntries,
-      { id: crypto.randomUUID(), month: '', consumption: 0, received: 0 },
+      { id: crypto.randomUUID(), month: nextMonthStr, consumption: 0, received: 0 },
     ])
   }
 
@@ -53,15 +59,9 @@ export function DataEntryForm() {
   }
 
   return (
-    <Card className="flex flex-col shadow-sm border-border/50 bg-card/50 backdrop-blur-sm">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-xl">Dados de Consumo</CardTitle>
-        <CardDescription>
-          Insira o histórico de consumo e energia recebida (injetada) por mês.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="flex flex-col space-y-6 pb-2">
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-1.5">
             <Label htmlFor="consumerName" className="text-xs font-semibold text-muted-foreground">
               Nome do Consumidor
@@ -89,21 +89,21 @@ export function DataEntryForm() {
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-sm font-medium border-b pb-2">Histórico de Consumo</h3>
+          <h3 className="text-base font-semibold border-b pb-2">Histórico de Consumo</h3>
 
           {draftEntries.length === 0 ? (
             <div className="text-center text-sm text-muted-foreground py-12 px-4 border-2 border-dashed rounded-xl bg-muted/30">
               Nenhum dado inserido. Adicione um mês para começar a análise.
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {draftEntries.map((entry) => (
                 <div
                   key={entry.id}
-                  className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end animate-slide-down bg-background p-4 sm:p-3 rounded-lg border shadow-sm transition-all hover:border-primary/30"
+                  className="grid grid-cols-1 sm:grid-cols-[1.5fr_2fr_2fr_auto] gap-4 items-end animate-slide-down bg-background p-4 rounded-xl border shadow-sm transition-all hover:border-primary/40"
                 >
-                  <div className="space-y-1.5 w-24 sm:w-auto">
-                    <Label className="text-xs font-semibold text-muted-foreground">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-muted-foreground">
                       Competência
                     </Label>
                     <Input
@@ -112,11 +112,11 @@ export function DataEntryForm() {
                       maxLength={7}
                       value={entry.month}
                       onChange={(e) => handleMonthChange(entry.id, e.target.value)}
-                      className="h-9 text-sm text-center"
+                      className="h-12 text-base text-center"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-muted-foreground">
                       Consumo (kWh)
                     </Label>
                     <Input
@@ -125,12 +125,12 @@ export function DataEntryForm() {
                       placeholder="Ex: 450"
                       value={entry.consumption === 0 ? '' : entry.consumption}
                       onChange={(e) => updateRow(entry.id, 'consumption', Number(e.target.value))}
-                      className="h-9 text-sm"
+                      className="h-12 text-lg font-medium"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">
-                      Recebida (kWh)
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-muted-foreground">
+                      Energia Injetada (kWh)
                     </Label>
                     <Input
                       type="number"
@@ -138,17 +138,17 @@ export function DataEntryForm() {
                       placeholder="Ex: 300"
                       value={entry.received === 0 ? '' : entry.received}
                       onChange={(e) => updateRow(entry.id, 'received', Number(e.target.value))}
-                      className="h-9 text-sm"
+                      className="h-12 text-lg font-medium"
                     />
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 sm:mt-0 mt-2"
+                    className="h-12 w-12 text-muted-foreground hover:text-destructive hover:bg-destructive/10 sm:mt-0 mt-2"
                     onClick={() => removeRow(entry.id)}
                     title="Remover mês"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-5 w-5" />
                   </Button>
                 </div>
               ))}
@@ -156,23 +156,23 @@ export function DataEntryForm() {
           )}
           <Button
             variant="outline"
-            className="w-full mt-2 border-dashed hover:bg-muted/50 hover:border-primary/50 transition-colors"
+            className="w-full mt-4 h-12 border-dashed hover:bg-muted/50 hover:border-primary/50 transition-colors"
             onClick={addRow}
           >
-            <Plus className="h-4 w-4 mr-2" /> Adicionar Mês
+            <Plus className="h-4 w-4 mr-2" /> Adicionar Mês Anterior
           </Button>
         </div>
-      </CardContent>
-      <CardFooter className="pt-4 border-t bg-muted/10 rounded-b-xl">
+      </div>
+      <div className="pt-6 border-t mt-4">
         <Button
-          className="w-full hover:scale-[1.02] transition-transform shadow-md"
+          className="w-full h-14 text-lg font-semibold hover:scale-[1.02] transition-transform shadow-md"
           size="lg"
           onClick={handleGenerateReport}
           disabled={draftEntries.length === 0}
         >
-          <Zap className="h-5 w-5 mr-2" /> Analisar Dados{' '}
+          <Zap className="h-6 w-6 mr-2" /> Gerar Relatório de Balanço
         </Button>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   )
 }

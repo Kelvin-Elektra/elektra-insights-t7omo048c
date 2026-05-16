@@ -220,10 +220,10 @@ export function ReportDashboard() {
               Consumo vs Energia Recebida
             </CardTitle>
           </CardHeader>
-          <CardContent className="print:flex print:justify-center">
+          <CardContent className="print:flex print:justify-center print:items-center print:w-full">
             <ChartContainer
               config={chartConfig}
-              className="h-[300px] w-full aspect-auto print:max-w-3xl"
+              className="h-[300px] w-full aspect-auto print:max-w-3xl print:mx-auto"
             >
               <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.5} />
@@ -262,10 +262,10 @@ export function ReportDashboard() {
               Evolução do Déficit Energético
             </CardTitle>
           </CardHeader>
-          <CardContent className="print:flex print:justify-center">
+          <CardContent className="print:flex print:justify-center print:items-center print:w-full">
             <ChartContainer
               config={chartConfig}
-              className="h-[300px] w-full aspect-auto print:max-w-3xl"
+              className="h-[300px] w-full aspect-auto print:max-w-3xl print:mx-auto"
             >
               <AreaChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.5} />

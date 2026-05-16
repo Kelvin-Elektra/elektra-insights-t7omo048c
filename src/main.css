@@ -133,3 +133,12 @@
     animation: slide-down 0.3s ease-out forwards;
   }
 }
+
+@media print {
+  [data-sonner-toaster],
+  [data-radix-toast-viewport],
+  .toaster,
+  #toast-container {
+    display: none !important;
+  }
+}
