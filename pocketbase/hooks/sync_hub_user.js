@@ -23,11 +23,15 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
       companyRecord = new Record(compCol)
       companyRecord.setId(companyPayload.id)
     }
-    companyRecord.set('name', companyPayload.name || companyRecord.getString('name'))
-    if (companyPayload.status) {
-      companyRecord.set('status', companyPayload.status)
+
+    if (companyPayload.name !== undefined) companyRecord.set('name', companyPayload.name)
+    if (companyPayload.status !== undefined) companyRecord.set('status', companyPayload.status)
+
+    try {
+      $app.save(companyRecord)
+    } catch (err) {
+      return e.badRequestError('Failed to save company: ' + err.message)
     }
-    $app.save(companyRecord)
   }
 
   let userRecord
@@ -46,16 +50,23 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
     }
   }
 
-  if (userPayload.name) userRecord.set('name', userPayload.name)
-  if (userPayload.role) userRecord.set('role', userPayload.role)
-  if (userPayload.company_id) userRecord.set('company_id', userPayload.company_id)
-  if (userPayload.role_company) userRecord.set('role_company', userPayload.role_company)
+  if (userPayload.name !== undefined) userRecord.set('name', userPayload.name)
+  if (userPayload.role !== undefined) userRecord.set('role', userPayload.role)
+  if (userPayload.company_id !== undefined) userRecord.set('company_id', userPayload.company_id)
+  if (userPayload.company_name !== undefined)
+    userRecord.set('company_name', userPayload.company_name)
+  if (userPayload.phone !== undefined) userRecord.set('phone', userPayload.phone)
+  if (body.role_company !== undefined) userRecord.set('role_company', body.role_company)
 
   if (companyRecord) {
     userRecord.set('company', companyRecord.id)
   }
 
-  $app.save(userRecord)
+  try {
+    $app.save(userRecord)
+  } catch (err) {
+    return e.badRequestError('Failed to save user: ' + err.message)
+  }
 
   return e.json(200, {
     success: true,
