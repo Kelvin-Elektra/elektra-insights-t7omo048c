@@ -16,11 +16,16 @@ import {
   AlertCircle,
   PlayCircle,
   Clock,
+  Settings,
+  Upload,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 
 interface LogEntry {
   id: string
