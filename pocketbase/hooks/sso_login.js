@@ -8,8 +8,12 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
   let payload
   try {
     payload = $security.parseJWT(token, secret)
+    $app.logger().info('Token Decoding', 'status', 'success', 'payload', payload)
   } catch (err) {
-    return e.unauthorizedError('Token inválido ou expirado')
+    $app.logger().error('Token Decoding', 'status', 'failed', 'error', err.message)
+    return e.unauthorizedError(
+      'Token de acesso inválido ou expirado. Por favor, tente novamente através do Hub.',
+    )
   }
 
   const userId = payload.id || payload.sub
@@ -24,6 +28,7 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
   if (payload.company_id) {
     try {
       companyRecord = $app.findFirstRecordByData('companies', 'hub_company_id', payload.company_id)
+      $app.logger().info('Company Lookup', 'status', 'found', 'companyId', companyRecord.id)
 
       // Update company name if changed
       if (companyRecord.getString('name') !== payload.company_name) {
@@ -31,6 +36,7 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
         $app.saveNoValidate(companyRecord)
       }
     } catch (_) {
+      $app.logger().info('Company Lookup', 'status', 'not_found', 'action', 'creating_new')
       // Create new company if it doesn't exist
       try {
         const companiesCol = $app.findCollectionByNameOrId('companies')
@@ -43,6 +49,8 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
         $app.logger().error('Erro ao criar empresa', 'error', createErr.message)
       }
     }
+  } else {
+    $app.logger().info('Company Lookup', 'status', 'skipped', 'reason', 'no_company_id_in_token')
   }
 
   // 2. Synchronize User
@@ -50,18 +58,21 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
   if (userId) {
     try {
       userRecord = $app.findFirstRecordByData('_pb_users_auth_', 'hub_user_id', userId)
+      $app.logger().info('User Lookup', 'status', 'found_by_hub_id', 'userId', userRecord.id)
     } catch (_) {}
   }
 
   if (!userRecord && email) {
     try {
       userRecord = $app.findAuthRecordByEmail('_pb_users_auth_', email)
+      $app.logger().info('User Lookup', 'status', 'found_by_email', 'userId', userRecord.id)
     } catch (_) {}
   }
 
   const usersCol = $app.findCollectionByNameOrId('_pb_users_auth_')
 
   if (userRecord) {
+    $app.logger().info('User Upsert', 'action', 'updating_existing', 'userId', userRecord.id)
     // Upsert User (Update existing)
     userRecord.set('name', payload.name || userRecord.getString('name'))
     userRecord.set('phone', payload.phone || userRecord.getString('phone'))
@@ -76,8 +87,10 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
       $app.saveNoValidate(userRecord)
     } catch (updateErr) {
       $app.logger().error('Erro ao atualizar usuário', 'error', updateErr.message)
+      return e.internalServerError('Falha ao atualizar conta de usuário.')
     }
   } else {
+    $app.logger().info('User Upsert', 'action', 'creating_new')
     // Upsert User (Create new)
     userRecord = new Record(usersCol)
     if (email) {
@@ -105,5 +118,13 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
     }
   }
 
+  if (!userRecord) {
+    $app
+      .logger()
+      .error('Final Response Generation', 'status', 'failed', 'reason', 'userRecord_is_null')
+    return e.internalServerError('Não foi possível resolver o usuário.')
+  }
+
+  $app.logger().info('Final Response Generation', 'status', 'success', 'userId', userRecord.id)
   return $apis.recordAuthResponse($app, e, userRecord)
 })

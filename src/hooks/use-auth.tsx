@@ -41,7 +41,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           window.location.href = '/admin'
         } catch (err: unknown) {
-          setError('Falha na autenticação SSO: ' + getErrorMessage(err))
+          const message = getErrorMessage(err)
+          if (message.includes('Token de acesso inválido ou expirado')) {
+            setError(message)
+          } else {
+            setError('Falha na autenticação SSO: ' + message)
+          }
         }
       }
 
