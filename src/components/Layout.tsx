@@ -11,7 +11,10 @@ export default function Layout() {
   const { reset } = useSolar()
   const { logout } = useAuth()
   const location = useLocation()
-  const isHub = location.pathname === '/'
+  const isMainRoute =
+    location.pathname === '/' ||
+    location.pathname === '/admin' ||
+    location.pathname === '/dashboard'
 
   return (
     <div className="flex flex-col min-h-screen transition-colors duration-300">
@@ -27,19 +30,19 @@ export default function Layout() {
                 Elektra Insights
               </span>
             </Link>
-            {!isHub && (
+            {!isMainRoute && (
               <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground border-l pl-4 ml-2">
                 <Link
                   to="/"
                   className="hover:text-foreground flex items-center gap-1 transition-colors"
                 >
-                  <ArrowLeft className="h-4 w-4" /> Voltar ao Hub
+                  <ArrowLeft className="h-4 w-4" /> Voltar ao Início
                 </Link>
               </div>
             )}
           </div>
           <div className="flex items-center gap-3">
-            {!isHub && (
+            {!isMainRoute && (
               <Button
                 variant="outline"
                 size="sm"

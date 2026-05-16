@@ -18,33 +18,41 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
   let companyRecord = null
   if (companyPayload.id) {
     try {
-      companyRecord = $app.findFirstRecordByData('companies', 'hub_company_id', companyPayload.id)
-      companyRecord.set('name', companyPayload.name || companyRecord.getString('name'))
-      if (companyPayload.status) {
-        companyRecord.set('status', companyPayload.status)
-      }
-      $app.save(companyRecord)
+      companyRecord = $app.findRecordById('companies', companyPayload.id)
     } catch (_) {
-      const compCol = $app.findCollectionByNameOrId('companies')
-      companyRecord = new Record(compCol)
-      companyRecord.set('hub_company_id', companyPayload.id)
-      companyRecord.set('name', companyPayload.name || 'Unknown Company')
-      if (companyPayload.status) {
-        companyRecord.set('status', companyPayload.status)
+      try {
+        companyRecord = $app.findFirstRecordByData('companies', 'hub_company_id', companyPayload.id)
+      } catch (__) {
+        const compCol = $app.findCollectionByNameOrId('companies')
+        companyRecord = new Record(compCol)
+        try {
+          companyRecord.setId(companyPayload.id)
+        } catch (err) {}
       }
-      $app.save(companyRecord)
     }
+    companyRecord.set('name', companyPayload.name || companyRecord.getString('name'))
+    if (companyPayload.status) {
+      companyRecord.set('status', companyPayload.status)
+    }
+    $app.save(companyRecord)
   }
 
   let userRecord
   try {
-    userRecord = $app.findAuthRecordByEmail('_pb_users_auth_', userPayload.email)
+    userRecord = $app.findRecordById('_pb_users_auth_', userPayload.id)
   } catch (_) {
-    const usersCol = $app.findCollectionByNameOrId('_pb_users_auth_')
-    userRecord = new Record(usersCol)
-    userRecord.setEmail(userPayload.email)
-    userRecord.setPassword($security.randomString(15) + 'aA1!')
-    userRecord.setVerified(true)
+    try {
+      userRecord = $app.findAuthRecordByEmail('_pb_users_auth_', userPayload.email)
+    } catch (__) {
+      const usersCol = $app.findCollectionByNameOrId('_pb_users_auth_')
+      userRecord = new Record(usersCol)
+      try {
+        userRecord.setId(userPayload.id)
+      } catch (err) {}
+      userRecord.setEmail(userPayload.email)
+      userRecord.setPassword($security.randomString(15) + 'aA1!')
+      userRecord.setVerified(true)
+    }
   }
 
   if (userPayload.name) userRecord.set('name', userPayload.name)

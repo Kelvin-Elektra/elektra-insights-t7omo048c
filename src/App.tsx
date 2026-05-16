@@ -5,7 +5,9 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeProvider } from 'next-themes'
 import { SolarProvider } from '@/stores/solar-context'
 
-import Hub from './pages/Hub'
+import { RoleRouter } from './components/RoleRouter'
+import AdminDashboard from './pages/AdminDashboard'
+import UserDashboard from './pages/UserDashboard'
 import UCAnalysis from './pages/UCAnalysis'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
@@ -46,7 +48,9 @@ const App = () => (
                   </ProtectedRoute>
                 }
               >
-                <Route path="/" element={<Hub />} />
+                <Route path="/" element={<RoleRouter />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/dashboard" element={<UserDashboard />} />
                 <Route path="/uc-analysis" element={<UCAnalysis />} />
               </Route>
               <Route path="*" element={<NotFound />} />

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-16T03:25:31.297Z",
+  "generatedAt": "2026-05-16T03:54:00.531Z",
   "collections": [
     {
       "name": "users",
@@ -39,20 +39,6 @@
           "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
-          "name": "company",
-          "type": "relation",
-          "required": false,
-          "system": false,
-          "collectionRef": "companies"
-        },
-        {
-          "name": "role",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["User_owner", "User_employee"]
-        },
-        {
           "name": "company_name",
           "type": "text",
           "required": false,
@@ -75,6 +61,13 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["User_owner", "User_employee"]
         }
       ],
       "indexes": [
@@ -115,12 +108,6 @@
         },
         {
           "name": "status",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "hub_company_id",
           "type": "text",
           "required": false,
           "system": false

@@ -13,11 +13,18 @@ routerAdd('POST', '/backend/v1/sso-login', (e) => {
     return e.unauthorizedError('Invalid or expired token')
   }
 
+  const userId = payload.id || payload.sub
   const email = payload.email
-  if (!email) return e.badRequestError('Token missing email')
 
+  let userRecord
   try {
-    const userRecord = $app.findAuthRecordByEmail('_pb_users_auth_', email)
+    if (userId) {
+      userRecord = $app.findRecordById('_pb_users_auth_', userId)
+    } else if (email) {
+      userRecord = $app.findAuthRecordByEmail('_pb_users_auth_', email)
+    } else {
+      throw new Error('No identifier in token')
+    }
     return $apis.recordAuthResponse($app, e, userRecord)
   } catch (_) {
     return e.notFoundError('User not found in this hub')
