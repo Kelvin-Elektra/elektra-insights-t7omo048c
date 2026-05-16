@@ -37,6 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           // Clean the URL without reloading
           window.history.replaceState({}, document.title, window.location.pathname)
+          window.location.href = '/admin'
         } catch (err: any) {
           setError('Falha na autenticação SSO. ' + (err.message || ''))
         }

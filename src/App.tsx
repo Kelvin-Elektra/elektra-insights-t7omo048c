@@ -12,12 +12,17 @@ import UCAnalysis from './pages/UCAnalysis'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import AccessDenied from './pages/AccessDenied'
+import Index from './pages/Index'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth()
 
   if (loading) return null
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
 
   if (user?.role_company !== 'admin' && user?.role !== 'User_owner') {
     return <Navigate to="/user" replace />
@@ -37,8 +42,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     )
   }
 
-  if (error || !user) {
+  if (error) {
     return <AccessDenied error={error} />
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
   }
 
   return <>{children}</>
@@ -53,6 +62,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <Routes>
+              <Route path="/login" element={<Index />} />
               <Route
                 element={
                   <ProtectedRoute>

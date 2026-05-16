@@ -66,6 +66,9 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
 
   if (companyRecord) {
     userRecord.set('company_id', companyRecord.id)
+    if (userRecord.collection().fields.getByName('company')) {
+      userRecord.set('company', companyRecord.id)
+    }
   }
 
   try {

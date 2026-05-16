@@ -15,17 +15,27 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
   const userId = payload.id || payload.sub
   const email = payload.email
 
+  if (!userId && !email) {
+    return e.badRequestError('No identifier in token')
+  }
+
   let userRecord
-  try {
-    if (userId) {
-      userRecord = $app.findRecordById('_pb_users_auth_', userId)
-    } else if (email) {
+
+  if (userId) {
+    try {
+      userRecord = $app.findFirstRecordByData('_pb_users_auth_', 'hub_user_id', userId)
+    } catch (_) {}
+  }
+
+  if (!userRecord && email) {
+    try {
       userRecord = $app.findAuthRecordByEmail('_pb_users_auth_', email)
-    } else {
-      throw new Error('No identifier in token')
-    }
-    return $apis.recordAuthResponse($app, e, userRecord)
-  } catch (_) {
+    } catch (_) {}
+  }
+
+  if (!userRecord) {
     return e.unauthorizedError('User not found in this hub')
   }
+
+  return $apis.recordAuthResponse($app, e, userRecord)
 })
