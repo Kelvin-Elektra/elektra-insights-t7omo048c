@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
+import { useRealtime } from '@/hooks/use-realtime'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -20,31 +21,35 @@ export default function History() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      if (!user) return
+  const fetchHistory = async () => {
+    if (!user) return
 
-      try {
-        let filter = ''
-        if (user.role !== 'User_elektra') {
-          filter = `company = "${user.company}"`
-        }
-
-        const records = await pb.collection('uc_analyses').getFullList({
-          sort: '-created',
-          filter: filter,
-          expand: 'company',
-        })
-        setAnalyses(records)
-      } catch (error) {
-        console.error('Error fetching history:', error)
-      } finally {
-        setLoading(false)
+    try {
+      let filter = ''
+      if (user.role !== 'User_elektra') {
+        filter = `company = "${user.company}"`
       }
-    }
 
+      const records = await pb.collection('uc_analyses').getFullList({
+        sort: '-created',
+        filter: filter,
+        expand: 'company',
+      })
+      setAnalyses(records)
+    } catch (error) {
+      console.error('Error fetching history:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchHistory()
   }, [user])
+
+  useRealtime('uc_analyses', () => {
+    fetchHistory()
+  })
 
   const filteredAnalyses = analyses.filter((a) => {
     const q = search.toLowerCase()

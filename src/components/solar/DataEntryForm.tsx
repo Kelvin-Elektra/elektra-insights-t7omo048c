@@ -4,6 +4,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus, Trash2, Zap } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export interface DataEntryFormProps {
   onSuccess?: () => void
@@ -20,14 +27,6 @@ export function DataEntryForm({ onSuccess }: DataEntryFormProps) {
     generateReport,
   } = useSolar()
 
-  const handleMonthChange = (id: string, value: string) => {
-    let formatted = value.replace(/\D/g, '')
-    if (formatted.length > 2) {
-      formatted = formatted.substring(0, 2) + '/' + formatted.substring(2, 6)
-    }
-    updateRow(id, 'month', formatted)
-  }
-
   const handleGenerateReport = async () => {
     await generateReport()
     toast.success('Relatório gerado e salvo com sucesso!')
@@ -40,6 +39,11 @@ export function DataEntryForm({ onSuccess }: DataEntryFormProps) {
     if (last && last.month.match(/^\d{2}\/\d{4}$/)) {
       const [m, y] = last.month.split('/')
       const d = new Date(parseInt(y), parseInt(m) - 2, 1)
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const yyyy = d.getFullYear()
+      nextMonthStr = `${mm}/${yyyy}`
+    } else {
+      const d = new Date()
       const mm = String(d.getMonth() + 1).padStart(2, '0')
       const yyyy = d.getFullYear()
       nextMonthStr = `${mm}/${yyyy}`
@@ -106,14 +110,51 @@ export function DataEntryForm({ onSuccess }: DataEntryFormProps) {
                     <Label className="text-sm font-semibold text-muted-foreground">
                       Competência
                     </Label>
-                    <Input
-                      type="text"
-                      placeholder="MM/AAAA"
-                      maxLength={7}
-                      value={entry.month}
-                      onChange={(e) => handleMonthChange(entry.id, e.target.value)}
-                      className="h-12 text-base text-center"
-                    />
+                    <div className="flex gap-2">
+                      <Select
+                        value={entry.month.split('/')[0] || ''}
+                        onValueChange={(val) => {
+                          const [_, y] = entry.month.split('/')
+                          updateRow(entry.id, 'month', `${val}/${y || new Date().getFullYear()}`)
+                        }}
+                      >
+                        <SelectTrigger className="h-12 w-full text-base">
+                          <SelectValue placeholder="Mês" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }).map((_, i) => {
+                            const val = String(i + 1).padStart(2, '0')
+                            return (
+                              <SelectItem key={val} value={val}>
+                                {val}
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={entry.month.split('/')[1] || ''}
+                        onValueChange={(val) => {
+                          const [m, _] = entry.month.split('/')
+                          updateRow(entry.id, 'month', `${m || '01'}/${val}`)
+                        }}
+                      >
+                        <SelectTrigger className="h-12 w-full text-base">
+                          <SelectValue placeholder="Ano" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 10 }).map((_, i) => {
+                            const year = String(new Date().getFullYear() - i)
+                            return (
+                              <SelectItem key={year} value={year}>
+                                {year}
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-muted-foreground">

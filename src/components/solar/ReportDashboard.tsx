@@ -214,16 +214,16 @@ export function ReportDashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 print:flex print:flex-col print:items-center print:gap-8 print:w-full">
-        <Card className="shadow-sm print:break-inside-avoid print:shadow-none print:w-full">
+        <Card className="shadow-sm print:break-inside-avoid print:shadow-none print:w-full print:border-none">
           <CardHeader className="pb-2 print:text-center">
             <CardTitle className="text-base font-semibold text-muted-foreground">
               Consumo vs Energia Recebida
             </CardTitle>
           </CardHeader>
-          <CardContent className="print:flex print:justify-center print:items-center print:w-full">
+          <CardContent className="print:flex print:justify-center print:items-center print:w-full print:p-0">
             <ChartContainer
               config={chartConfig}
-              className="h-[300px] w-full aspect-auto print:max-w-3xl print:mx-auto"
+              className="h-[300px] w-full aspect-auto print:w-[650px] print:h-[320px] print:mx-auto"
             >
               <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.5} />
@@ -256,16 +256,16 @@ export function ReportDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm print:break-inside-avoid print:shadow-none mt-6 xl:mt-0 print:w-full">
+        <Card className="shadow-sm print:break-inside-avoid print:shadow-none mt-6 xl:mt-0 print:w-full print:border-none print:mt-10">
           <CardHeader className="pb-2 print:text-center">
             <CardTitle className="text-base font-semibold text-muted-foreground">
               Evolução do Déficit Energético
             </CardTitle>
           </CardHeader>
-          <CardContent className="print:flex print:justify-center print:items-center print:w-full">
+          <CardContent className="print:flex print:justify-center print:items-center print:w-full print:p-0">
             <ChartContainer
               config={chartConfig}
-              className="h-[300px] w-full aspect-auto print:max-w-3xl print:mx-auto"
+              className="h-[300px] w-full aspect-auto print:w-[650px] print:h-[320px] print:mx-auto"
             >
               <AreaChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.5} />

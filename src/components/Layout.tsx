@@ -121,14 +121,23 @@ export default function Layout() {
                 <span>Novo Relatório</span>
               </Button>
             )}
-            {company?.logo && (
-              <img
-                src={pb.files.getURL(company, company.logo)}
-                alt={company.name}
-                className="h-8 w-auto object-contain mr-2 max-w-[120px] hidden sm:block border rounded bg-white p-1"
-                title={company.name}
-              />
-            )}
+            <div className="hidden sm:flex items-center justify-center mr-2">
+              {company?.logo ? (
+                <img
+                  src={pb.files.getURL(company, company.logo)}
+                  alt={company.name}
+                  className="h-8 w-8 object-cover rounded-full border border-border shadow-sm bg-white"
+                  title={company.name}
+                />
+              ) : company?.name ? (
+                <div
+                  className="h-8 w-8 rounded-full border border-border bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shadow-sm"
+                  title={company.name}
+                >
+                  {company.name.charAt(0).toUpperCase()}
+                </div>
+              ) : null}
+            </div>
             <Button
               variant="ghost"
               size="icon"
