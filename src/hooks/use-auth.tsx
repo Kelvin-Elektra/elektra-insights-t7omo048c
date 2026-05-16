@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 interface AuthContextType {
   user: any
@@ -27,6 +28,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const ssoToken = params.get('sso_token')
 
       if (ssoToken) {
+        // Clean the URL without reloading to prevent loops on error
+        window.history.replaceState({}, document.title, window.location.pathname)
+
         try {
           const res = await pb.send(`/backend/v1/sso?sso_token=${ssoToken}`, {
             method: 'GET',
@@ -35,11 +39,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           pb.authStore.save(res.token, res.record)
           setUser(res.record)
 
-          // Clean the URL without reloading
-          window.history.replaceState({}, document.title, window.location.pathname)
           window.location.href = '/admin'
-        } catch (err: any) {
-          setError('Falha na autenticação SSO. ' + (err.message || ''))
+        } catch (err: unknown) {
+          setError('Falha na autenticação SSO: ' + getErrorMessage(err))
         }
       }
 
