@@ -57,19 +57,19 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
   let userRecord = null
   if (userId) {
     try {
-      userRecord = $app.findFirstRecordByData('_pb_users_auth_', 'hub_user_id', userId)
+      userRecord = $app.findFirstRecordByData('users', 'hub_user_id', userId)
       $app.logger().info('User Lookup', 'status', 'found_by_hub_id', 'userId', userRecord.id)
     } catch (_) {}
   }
 
   if (!userRecord && email) {
     try {
-      userRecord = $app.findAuthRecordByEmail('_pb_users_auth_', email)
+      userRecord = $app.findAuthRecordByEmail('users', email)
       $app.logger().info('User Lookup', 'status', 'found_by_email', 'userId', userRecord.id)
     } catch (_) {}
   }
 
-  const usersCol = $app.findCollectionByNameOrId('_pb_users_auth_')
+  const usersCol = $app.findCollectionByNameOrId('users')
 
   if (userRecord) {
     $app.logger().info('User Upsert', 'action', 'updating_existing', 'userId', userRecord.id)
@@ -118,13 +118,29 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
     }
   }
 
-  if (!userRecord) {
+  if (!userRecord || !userRecord.id) {
     $app
       .logger()
       .error('Final Response Generation', 'status', 'failed', 'reason', 'userRecord_is_null')
     return e.internalServerError('Não foi possível resolver o usuário.')
   }
 
-  $app.logger().info('Final Response Generation', 'status', 'success', 'userId', userRecord.id)
-  return $apis.recordAuthResponse($app, e, userRecord)
+  try {
+    const fetchedRecord = $app.findRecordById('users', userRecord.id)
+    $app.logger().info('Final Response Generation', 'status', 'success', 'userId', fetchedRecord.id)
+    return $apis.recordAuthResponse($app, e, fetchedRecord)
+  } catch (err) {
+    $app
+      .logger()
+      .error(
+        'Final Response Generation',
+        'status',
+        'failed',
+        'reason',
+        'fetch_failed',
+        'error',
+        err.message,
+      )
+    return e.internalServerError('Erro ao gerar sessão de usuário.')
+  }
 })

@@ -36,12 +36,12 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
 
   let userRecord
   try {
-    userRecord = $app.findFirstRecordByData('_pb_users_auth_', 'hub_user_id', userPayload.id)
+    userRecord = $app.findFirstRecordByData('users', 'hub_user_id', userPayload.id)
   } catch (_) {
     try {
-      userRecord = $app.findAuthRecordByEmail('_pb_users_auth_', userPayload.email)
+      userRecord = $app.findAuthRecordByEmail('users', userPayload.email)
     } catch (__) {
-      const usersCol = $app.findCollectionByNameOrId('_pb_users_auth_')
+      const usersCol = $app.findCollectionByNameOrId('users')
       userRecord = new Record(usersCol)
       userRecord.setEmail(userPayload.email)
       userRecord.setPassword($security.randomString(15) + 'aA1!')
