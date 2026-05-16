@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-16T04:45:43.621Z",
+  "generatedAt": "2026-05-16T04:49:13.455Z",
   "collections": [
     {
       "name": "users",
@@ -80,6 +80,13 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "company",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "companies"
         }
       ],
       "indexes": [
@@ -87,8 +94,8 @@
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''",
         "CREATE INDEX `idx_users_company_id` ON `users` (company_id)",
         "CREATE INDEX `idx_users_role_company` ON `users` (role_company)",
-        "CREATE UNIQUE INDEX `idx_users_hub_user_id` ON `users` (hub_user_id) WHERE hub_user_id != ''",
-        "CREATE INDEX `idx_users_hub_company_id` ON `users` (hub_company_id)"
+        "CREATE INDEX `idx_users_hub_company_id` ON `users` (hub_company_id)",
+        "CREATE UNIQUE INDEX `idx_users_hub_user_id_uniq` ON `users` (hub_user_id) WHERE hub_user_id != ''"
       ]
     },
     {
@@ -136,7 +143,7 @@
         }
       ],
       "indexes": [
-        "CREATE UNIQUE INDEX `idx_companies_hub_company_id` ON `companies` (hub_company_id) WHERE hub_company_id != ''"
+        "CREATE UNIQUE INDEX `idx_companies_hub_company_id_uniq` ON `companies` (hub_company_id) WHERE hub_company_id != ''"
       ]
     },
     {

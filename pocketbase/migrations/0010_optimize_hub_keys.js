@@ -9,14 +9,22 @@ migrate(
       )
     }
 
-    app
-      .db()
-      .newQuery(`
-    DELETE FROM _pb_users_auth_ WHERE id NOT IN (
-      SELECT MIN(id) FROM _pb_users_auth_ GROUP BY hub_user_id
-    ) AND hub_user_id IS NOT NULL AND hub_user_id != ''
-  `)
-      .execute()
+    const usersList = app.findRecordsByFilter(
+      '_pb_users_auth_',
+      "hub_user_id != ''",
+      'created',
+      10000,
+      0,
+    )
+    const seenUserIds = {}
+    for (const u of usersList) {
+      const hubId = u.getString('hub_user_id')
+      if (seenUserIds[hubId]) {
+        app.delete(u)
+      } else {
+        seenUserIds[hubId] = true
+      }
+    }
 
     let uIndexes = users.indexes || []
     users.indexes = uIndexes.filter((idx) => !idx.includes('hub_user_id'))
@@ -25,14 +33,22 @@ migrate(
 
     const companies = app.findCollectionByNameOrId('companies')
 
-    app
-      .db()
-      .newQuery(`
-    DELETE FROM companies WHERE id NOT IN (
-      SELECT MIN(id) FROM companies GROUP BY hub_company_id
-    ) AND hub_company_id IS NOT NULL AND hub_company_id != ''
-  `)
-      .execute()
+    const companiesList = app.findRecordsByFilter(
+      'companies',
+      "hub_company_id != ''",
+      'created',
+      10000,
+      0,
+    )
+    const seenCompIds = {}
+    for (const c of companiesList) {
+      const hubId = c.getString('hub_company_id')
+      if (seenCompIds[hubId]) {
+        app.delete(c)
+      } else {
+        seenCompIds[hubId] = true
+      }
+    }
 
     let cIndexes = companies.indexes || []
     companies.indexes = cIndexes.filter((idx) => !idx.includes('hub_company_id'))
