@@ -5,9 +5,10 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { ThemeProvider } from 'next-themes'
 import { SolarProvider } from '@/stores/solar-context'
 
-import { RoleRouter } from './components/RoleRouter'
-import AdminDashboard from './pages/AdminDashboard'
-import UserDashboard from './pages/UserDashboard'
+import Dashboard from './pages/Dashboard'
+import ModulesTest from './pages/ModulesTest'
+import History from './pages/History'
+import Settings from './pages/Settings'
 import UCAnalysis from './pages/UCAnalysis'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
@@ -17,17 +18,21 @@ import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth()
-
   if (loading) return null
-
-  if (!user) {
-    return <Navigate to="/login" replace />
-  }
-
+  if (!user) return <Navigate to="/login" replace />
   if (user?.role_company !== 'admin' && user?.role !== 'User_owner') {
-    return <Navigate to="/user" replace />
+    return <Navigate to="/" replace />
   }
+  return <>{children}</>
+}
 
+const ElektraProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  if (user?.role !== 'User_elektra') {
+    return <Navigate to="/" replace />
+  }
   return <>{children}</>
 }
 
@@ -36,8 +41,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-pulse text-lg text-primary">Autenticando...</div>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-muted/40">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="animate-pulse text-lg font-medium text-muted-foreground">
+          Autenticando...
+        </div>
       </div>
     )
   }
@@ -70,17 +78,25 @@ const App = () => (
                   </ProtectedRoute>
                 }
               >
-                <Route path="/" element={<RoleRouter />} />
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/history" element={<History />} />
+                <Route path="/uc-analysis" element={<UCAnalysis />} />
                 <Route
-                  path="/admin"
+                  path="/settings"
                   element={
                     <AdminProtectedRoute>
-                      <AdminDashboard />
+                      <Settings />
                     </AdminProtectedRoute>
                   }
                 />
-                <Route path="/user" element={<UserDashboard />} />
-                <Route path="/uc-analysis" element={<UCAnalysis />} />
+                <Route
+                  path="/modules-test"
+                  element={
+                    <ElektraProtectedRoute>
+                      <ModulesTest />
+                    </ElektraProtectedRoute>
+                  }
+                />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

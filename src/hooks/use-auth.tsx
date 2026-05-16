@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           pb.authStore.save(res.token, res.record)
           setUser(res.record)
 
-          window.location.href = '/admin'
+          window.location.href = '/'
         } catch (err: unknown) {
           const message = getErrorMessage(err)
           if (message.includes('Token de acesso inválido ou expirado')) {

@@ -3,15 +3,15 @@ import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
 import { FileBarChart2, SunMedium } from 'lucide-react'
 
-export default function UserDashboard() {
+export default function ModulesAccess() {
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Meu Painel</h1>
-        <p className="text-muted-foreground">Bem-vindo ao sistema de análise de energia solar.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Módulos</h1>
+        <p className="text-muted-foreground">Acesse as ferramentas de análise de energia.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="hover:shadow-md transition-shadow border-primary/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

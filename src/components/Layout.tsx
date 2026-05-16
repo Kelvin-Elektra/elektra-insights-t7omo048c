@@ -1,56 +1,121 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Sun, Moon, PlusCircle, Zap, ArrowLeft } from 'lucide-react'
+import { Sun, Moon, PlusCircle, Zap, LogOut, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTheme } from 'next-themes'
 import { useSolar } from '@/stores/solar-context'
 import { useAuth } from '@/hooks/use-auth'
-import { LogOut } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import pb from '@/lib/pocketbase/client'
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
 
 export default function Layout() {
   const { theme, setTheme } = useTheme()
   const { reset } = useSolar()
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
   const location = useLocation()
-  const isMainRoute =
-    location.pathname === '/' ||
-    location.pathname === '/admin' ||
-    location.pathname === '/dashboard'
+
+  const [company, setCompany] = useState<any>(null)
+
+  useEffect(() => {
+    if (user?.company) {
+      pb.collection('companies').getOne(user.company).then(setCompany).catch(console.error)
+    }
+  }, [user?.company])
+
+  const isAdmin = user?.role_company === 'admin' || user?.role === 'User_owner'
+  const isElektra = user?.role === 'User_elektra'
+
+  const links = isElektra
+    ? [
+        { name: 'Manutenção', to: '/' },
+        { name: 'Histórico Global', to: '/history' },
+        { name: 'Módulos (Teste)', to: '/modules-test' },
+      ]
+    : isAdmin
+      ? [
+          { name: 'Módulos', to: '/' },
+          { name: 'Histórico', to: '/history' },
+          { name: 'Configurações', to: '/settings' },
+        ]
+      : [
+          { name: 'Módulos', to: '/' },
+          { name: 'Meu Histórico', to: '/history' },
+        ]
+
+  const isMainRoute = links.some((link) => location.pathname === link.to)
+
+  const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (
+    <>
+      {links.map((link) => (
+        <Link
+          key={link.to}
+          to={link.to}
+          className={cn(
+            'text-sm font-medium transition-colors hover:text-primary',
+            location.pathname === link.to ? 'text-primary' : 'text-muted-foreground',
+            mobile && 'block py-2 text-lg',
+          )}
+        >
+          {link.name}
+        </Link>
+      ))}
+    </>
+  )
 
   return (
     <div className="flex flex-col min-h-screen transition-colors duration-300">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm print:hidden">
         <div className="container max-w-6xl mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-4">
-            <Link
-              to="/"
-              className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity"
-            >
-              <Zap className="h-6 w-6" />
-              <span className="text-xl font-bold tracking-tight text-foreground">
-                Elektra Insights
-              </span>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left">
+                <SheetHeader>
+                  <SheetTitle>Navegação</SheetTitle>
+                </SheetHeader>
+                <nav className="mt-6 flex flex-col gap-2">
+                  <NavLinks mobile />
+                </nav>
+              </SheetContent>
+            </Sheet>
+
+            <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              {company?.logo ? (
+                <img
+                  src={pb.files.getURL(company, company.logo)}
+                  alt={company.name}
+                  className="h-8 max-w-[120px] object-contain"
+                />
+              ) : (
+                <>
+                  <Zap className="h-6 w-6 text-primary" />
+                  <span className="text-xl font-bold tracking-tight text-foreground hidden sm:inline-block">
+                    Elektra Insights
+                  </span>
+                </>
+              )}
             </Link>
-            {!isMainRoute && (
-              <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground border-l pl-4 ml-2">
-                <Link
-                  to="/"
-                  className="hover:text-foreground flex items-center gap-1 transition-colors"
-                >
-                  <ArrowLeft className="h-4 w-4" /> Voltar ao Início
-                </Link>
-              </div>
-            )}
+
+            <nav className="hidden md:flex items-center gap-6 ml-6">
+              <NavLinks />
+            </nav>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {!isMainRoute && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={reset}
-                className="hover:scale-[1.02] transition-transform shadow-sm"
+                className="hover:scale-[1.02] transition-transform shadow-sm hidden sm:flex"
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Novo Relatório</span>
+                <span>Novo Relatório</span>
               </Button>
             )}
             <Button
@@ -76,7 +141,7 @@ export default function Layout() {
         </div>
       </header>
 
-      <main className="flex-1 container max-w-6xl mx-auto py-8 px-4 animate-fade-in">
+      <main className="flex-1 container max-w-6xl mx-auto py-8 px-4 animate-fade-in-up">
         <Outlet />
       </main>
 
