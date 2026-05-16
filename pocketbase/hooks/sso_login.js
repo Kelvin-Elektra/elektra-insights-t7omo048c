@@ -8,9 +8,11 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
   let payload
   try {
     payload = $security.parseJWT(token, secret)
-    $app.logger().info('Token Decoding', 'status', 'success', 'payload', payload)
+    $app
+      .logger()
+      .info('SSO Token Decoding', 'status', 'success', 'userId', payload.id || payload.sub)
   } catch (err) {
-    $app.logger().error('Token Decoding', 'status', 'failed', 'error', err.message)
+    $app.logger().error('SSO Token Decoding', 'status', 'failed', 'error', err.message)
     return e.unauthorizedError(
       'Token de acesso inválido ou expirado. Por favor, tente novamente através do Hub.',
     )
@@ -23,21 +25,16 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
     return e.badRequestError('Nenhum identificador encontrado no token')
   }
 
-  // 1. Synchronize Company
+  // 1. Sync Company
   let companyRecord = null
   if (payload.company_id) {
     try {
       companyRecord = $app.findFirstRecordByData('companies', 'hub_company_id', payload.company_id)
-      $app.logger().info('Company Lookup', 'status', 'found', 'companyId', companyRecord.id)
-
-      // Update company name if changed
       if (companyRecord.getString('name') !== payload.company_name) {
         companyRecord.set('name', payload.company_name || 'Empresa Sem Nome')
         $app.saveNoValidate(companyRecord)
       }
     } catch (_) {
-      $app.logger().info('Company Lookup', 'status', 'not_found', 'action', 'creating_new')
-      // Create new company if it doesn't exist
       try {
         const companiesCol = $app.findCollectionByNameOrId('companies')
         companyRecord = new Record(companiesCol)
@@ -45,53 +42,50 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
         companyRecord.set('hub_company_id', payload.company_id)
         companyRecord.set('status', 'active')
         $app.saveNoValidate(companyRecord)
-      } catch (createErr) {
-        $app.logger().error('Erro ao criar empresa', 'error', createErr.message)
+        $app.logger().info('SSO Company Sync', 'status', 'created', 'companyId', companyRecord.id)
+      } catch (err) {
+        $app.logger().error('SSO Company Sync', 'status', 'failed', 'error', err.message)
+        return e.internalServerError('failed to sync company data')
       }
     }
-  } else {
-    $app.logger().info('Company Lookup', 'status', 'skipped', 'reason', 'no_company_id_in_token')
   }
 
-  // 2. Synchronize User
+  // 2. Sync User
   let userRecord = null
   if (userId) {
     try {
       userRecord = $app.findFirstRecordByData('users', 'hub_user_id', userId)
-      $app.logger().info('User Lookup', 'status', 'found_by_hub_id', 'userId', userRecord.id)
     } catch (_) {}
   }
 
   if (!userRecord && email) {
     try {
       userRecord = $app.findAuthRecordByEmail('users', email)
-      $app.logger().info('User Lookup', 'status', 'found_by_email', 'userId', userRecord.id)
     } catch (_) {}
   }
 
   const usersCol = $app.findCollectionByNameOrId('users')
 
   if (userRecord) {
-    $app.logger().info('User Upsert', 'action', 'updating_existing', 'userId', userRecord.id)
-    // Upsert User (Update existing)
-    userRecord.set('name', payload.name || userRecord.getString('name'))
-    userRecord.set('phone', payload.phone || userRecord.getString('phone'))
+    // Update existing user
     if (email) userRecord.setEmail(email)
-    userRecord.set('role', payload.role || userRecord.getString('role'))
-    userRecord.set('role_company', payload.role_company || userRecord.getString('role_company'))
+    if (payload.name) userRecord.set('name', payload.name)
+    if (payload.phone) userRecord.set('phone', payload.phone)
+    if (payload.role) userRecord.set('role', payload.role)
+    if (payload.role_company) userRecord.set('role_company', payload.role_company)
     if (userId) userRecord.set('hub_user_id', userId)
     if (payload.company_id) userRecord.set('hub_company_id', payload.company_id)
     if (companyRecord) userRecord.set('company', companyRecord.id)
 
     try {
       $app.saveNoValidate(userRecord)
-    } catch (updateErr) {
-      $app.logger().error('Erro ao atualizar usuário', 'error', updateErr.message)
-      return e.internalServerError('Falha ao atualizar conta de usuário.')
+      $app.logger().info('SSO User Sync', 'status', 'updated', 'userId', userRecord.id)
+    } catch (err) {
+      $app.logger().error('SSO User Sync', 'status', 'failed_update', 'error', err.message)
+      return e.internalServerError('failed to sync user data')
     }
   } else {
-    $app.logger().info('User Upsert', 'action', 'creating_new')
-    // Upsert User (Create new)
+    // Create new user
     userRecord = new Record(usersCol)
     if (email) {
       userRecord.setEmail(email)
@@ -99,7 +93,7 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
       userRecord.setEmail(`temp_${$security.randomString(8)}@example.com`)
     }
 
-    userRecord.setPassword($security.randomString(15) + 'A1!') // Ensure password constraints are met
+    userRecord.setPassword($security.randomString(15) + 'A1!')
     userRecord.setVerified(true)
 
     userRecord.set('name', payload.name || '')
@@ -112,35 +106,37 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
 
     try {
       $app.saveNoValidate(userRecord)
-    } catch (createErr) {
-      $app.logger().error('Erro ao criar usuário', 'error', createErr.message)
-      return e.internalServerError('Falha ao criar conta de usuário.')
+      $app.logger().info('SSO User Sync', 'status', 'created', 'userId', userRecord.id)
+    } catch (err) {
+      $app.logger().error('SSO User Sync', 'status', 'failed_create', 'error', err.message)
+      return e.internalServerError('failed to sync user data')
     }
   }
 
-  if (!userRecord || !userRecord.id) {
-    $app
-      .logger()
-      .error('Final Response Generation', 'status', 'failed', 'reason', 'userRecord_is_null')
-    return e.internalServerError('Não foi possível resolver o usuário.')
+  let fetchedRecord
+  try {
+    fetchedRecord = $app.findRecordById('users', userRecord.id)
+  } catch (err) {
+    $app.logger().error('SSO User Fetch', 'status', 'failed', 'error', err.message)
+    return e.internalServerError('failed to fetch user data')
   }
 
-  try {
-    const fetchedRecord = $app.findRecordById('users', userRecord.id)
-    $app.logger().info('Final Response Generation', 'status', 'success', 'userId', fetchedRecord.id)
-    return $apis.recordAuthResponse($app, e, fetchedRecord)
-  } catch (err) {
-    $app
-      .logger()
-      .error(
-        'Final Response Generation',
-        'status',
-        'failed',
-        'reason',
-        'fetch_failed',
-        'error',
-        err.message,
-      )
-    return e.internalServerError('Erro ao gerar sessão de usuário.')
+  // 3. Manually generate Auth Token
+  // We avoid $apis.recordAuthResponse to prevent nil pointer dereferences
+  // when password metadata or internal token auth states are misconfigured.
+  const jwtPayload = {
+    id: fetchedRecord.id,
+    type: 'auth',
+    collectionId: usersCol.id,
   }
+
+  const jwtSecret = $secrets.get('SSO_SECRET') || $security.randomString(32)
+  const authToken = $security.createJWT(jwtPayload, jwtSecret, 604800) // 7 days duration
+
+  $app.logger().info('SSO Login Success', 'userId', fetchedRecord.id)
+
+  return e.json(200, {
+    token: authToken,
+    record: fetchedRecord,
+  })
 })
