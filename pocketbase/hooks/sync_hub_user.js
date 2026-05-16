@@ -17,11 +17,11 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
   let companyRecord = null
   if (companyPayload.id) {
     try {
-      companyRecord = $app.findRecordById('companies', companyPayload.id)
+      companyRecord = $app.findFirstRecordByData('companies', 'hub_company_id', companyPayload.id)
     } catch (_) {
       const compCol = $app.findCollectionByNameOrId('companies')
       companyRecord = new Record(compCol)
-      companyRecord.setId(companyPayload.id)
+      companyRecord.set('hub_company_id', companyPayload.id)
     }
 
     if (companyPayload.name !== undefined) companyRecord.set('name', companyPayload.name)
@@ -36,30 +36,36 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
 
   let userRecord
   try {
-    userRecord = $app.findRecordById('_pb_users_auth_', userPayload.id)
+    userRecord = $app.findFirstRecordByData('_pb_users_auth_', 'hub_user_id', userPayload.id)
   } catch (_) {
     try {
       userRecord = $app.findAuthRecordByEmail('_pb_users_auth_', userPayload.email)
     } catch (__) {
       const usersCol = $app.findCollectionByNameOrId('_pb_users_auth_')
       userRecord = new Record(usersCol)
-      userRecord.setId(userPayload.id)
       userRecord.setEmail(userPayload.email)
       userRecord.setPassword($security.randomString(15) + 'aA1!')
       userRecord.setVerified(true)
     }
   }
 
+  userRecord.set('hub_user_id', userPayload.id)
+
   if (userPayload.name !== undefined) userRecord.set('name', userPayload.name)
   if (userPayload.role !== undefined) userRecord.set('role', userPayload.role)
-  if (userPayload.company_id !== undefined) userRecord.set('company_id', userPayload.company_id)
-  if (userPayload.company_name !== undefined)
+
+  if (userPayload.company_id !== undefined) {
+    userRecord.set('hub_company_id', userPayload.company_id)
+  }
+
+  if (userPayload.company_name !== undefined) {
     userRecord.set('company_name', userPayload.company_name)
+  }
   if (userPayload.phone !== undefined) userRecord.set('phone', userPayload.phone)
   if (body.role_company !== undefined) userRecord.set('role_company', body.role_company)
 
   if (companyRecord) {
-    userRecord.set('company', companyRecord.id)
+    userRecord.set('company_id', companyRecord.id)
   }
 
   try {

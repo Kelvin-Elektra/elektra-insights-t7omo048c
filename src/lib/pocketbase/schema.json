@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-16T04:19:45.111Z",
+  "generatedAt": "2026-05-16T04:34:21.914Z",
   "collections": [
     {
       "name": "users",
@@ -68,13 +68,27 @@
           "required": false,
           "system": false,
           "selectValues": ["User_owner", "User_employee"]
+        },
+        {
+          "name": "hub_user_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "hub_company_id",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''",
         "CREATE INDEX `idx_users_company_id` ON `users` (company_id)",
-        "CREATE INDEX `idx_users_role_company` ON `users` (role_company)"
+        "CREATE INDEX `idx_users_role_company` ON `users` (role_company)",
+        "CREATE UNIQUE INDEX `idx_users_hub_user_id` ON `users` (hub_user_id) WHERE hub_user_id != ''",
+        "CREATE INDEX `idx_users_hub_company_id` ON `users` (hub_company_id)"
       ]
     },
     {
@@ -113,9 +127,17 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "hub_company_id",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
-      "indexes": []
+      "indexes": [
+        "CREATE UNIQUE INDEX `idx_companies_hub_company_id` ON `companies` (hub_company_id) WHERE hub_company_id != ''"
+      ]
     },
     {
       "name": "uc_analyses",
