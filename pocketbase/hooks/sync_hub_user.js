@@ -9,10 +9,9 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
   const body = e.requestInfo().body || {}
   const userPayload = body.user || {}
   const companyPayload = body.company || {}
-  const roleCompany = body.role_company || ''
 
-  if (!userPayload.id || !userPayload.email || !userPayload.role) {
-    return e.badRequestError('Missing required user fields (id, email, role)')
+  if (!userPayload.id || !userPayload.email) {
+    return e.badRequestError('Missing required user fields (id, email)')
   }
 
   let companyRecord = null
@@ -20,15 +19,9 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
     try {
       companyRecord = $app.findRecordById('companies', companyPayload.id)
     } catch (_) {
-      try {
-        companyRecord = $app.findFirstRecordByData('companies', 'hub_company_id', companyPayload.id)
-      } catch (__) {
-        const compCol = $app.findCollectionByNameOrId('companies')
-        companyRecord = new Record(compCol)
-        try {
-          companyRecord.setId(companyPayload.id)
-        } catch (err) {}
-      }
+      const compCol = $app.findCollectionByNameOrId('companies')
+      companyRecord = new Record(compCol)
+      companyRecord.setId(companyPayload.id)
     }
     companyRecord.set('name', companyPayload.name || companyRecord.getString('name'))
     if (companyPayload.status) {
@@ -46,9 +39,7 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
     } catch (__) {
       const usersCol = $app.findCollectionByNameOrId('_pb_users_auth_')
       userRecord = new Record(usersCol)
-      try {
-        userRecord.setId(userPayload.id)
-      } catch (err) {}
+      userRecord.setId(userPayload.id)
       userRecord.setEmail(userPayload.email)
       userRecord.setPassword($security.randomString(15) + 'aA1!')
       userRecord.setVerified(true)
@@ -56,12 +47,9 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
   }
 
   if (userPayload.name) userRecord.set('name', userPayload.name)
-  userRecord.set('role', userPayload.role)
-  if (userPayload.phone) userRecord.set('phone', userPayload.phone)
-  if (userPayload.company_name) userRecord.set('company_name', userPayload.company_name)
+  if (userPayload.role) userRecord.set('role', userPayload.role)
   if (userPayload.company_id) userRecord.set('company_id', userPayload.company_id)
-
-  userRecord.set('role_company', roleCompany)
+  if (userPayload.role_company) userRecord.set('role_company', userPayload.role_company)
 
   if (companyRecord) {
     userRecord.set('company', companyRecord.id)

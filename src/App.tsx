@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -13,6 +13,18 @@ import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import AccessDenied from './pages/AccessDenied'
 import { AuthProvider, useAuth } from './hooks/use-auth'
+
+const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth()
+
+  if (loading) return null
+
+  if (user?.role_company !== 'admin' && user?.role !== 'User_owner') {
+    return <Navigate to="/user" replace />
+  }
+
+  return <>{children}</>
+}
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, error } = useAuth()
@@ -49,8 +61,15 @@ const App = () => (
                 }
               >
                 <Route path="/" element={<RoleRouter />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/dashboard" element={<UserDashboard />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <AdminProtectedRoute>
+                      <AdminDashboard />
+                    </AdminProtectedRoute>
+                  }
+                />
+                <Route path="/user" element={<UserDashboard />} />
                 <Route path="/uc-analysis" element={<UCAnalysis />} />
               </Route>
               <Route path="*" element={<NotFound />} />

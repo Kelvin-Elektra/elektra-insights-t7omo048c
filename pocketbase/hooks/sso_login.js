@@ -1,7 +1,6 @@
-routerAdd('POST', '/backend/v1/sso-login', (e) => {
-  const body = e.requestInfo().body
-  const token = body.token
-  if (!token) return e.badRequestError('Missing token')
+routerAdd('GET', '/backend/v1/sso', (e) => {
+  const token = e.requestInfo().query['sso_token']
+  if (!token) return e.badRequestError('Missing sso_token')
 
   const secret = $secrets.get('SSO_SECRET')
   if (!secret) return e.internalServerError('SSO configured incorrectly')
@@ -27,6 +26,6 @@ routerAdd('POST', '/backend/v1/sso-login', (e) => {
     }
     return $apis.recordAuthResponse($app, e, userRecord)
   } catch (_) {
-    return e.notFoundError('User not found in this hub')
+    return e.unauthorizedError('User not found in this hub')
   }
 })

@@ -28,9 +28,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (ssoToken) {
         try {
-          const res = await pb.send('/backend/v1/sso-login', {
-            method: 'POST',
-            body: JSON.stringify({ token: ssoToken }),
+          const res = await pb.send(`/backend/v1/sso?sso_token=${ssoToken}`, {
+            method: 'GET',
           })
 
           pb.authStore.save(res.token, res.record)

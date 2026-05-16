@@ -10,9 +10,9 @@ export function RoleRouter() {
     return <Navigate to="/unauthorized" replace />
   }
 
-  if (user.role_company === 'admin') {
+  if (user.role_company === 'admin' || user.role === 'User_owner') {
     return <Navigate to="/admin" replace />
   }
 
-  return <Navigate to="/dashboard" replace />
+  return <Navigate to="/user" replace />
 }
