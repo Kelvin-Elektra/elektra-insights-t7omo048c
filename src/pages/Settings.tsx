@@ -57,10 +57,14 @@ export default function Settings() {
   const handleSave = async () => {
     if (!company) return
 
+    if (!logoFile) {
+      toast.info('Nenhuma nova imagem selecionada.')
+      return
+    }
+
     setSaving(true)
     try {
       const formData = new FormData()
-      formData.append('name', name)
 
       if (logoFile) {
         formData.append('logo', logoFile)
@@ -110,10 +114,14 @@ export default function Settings() {
             <Label htmlFor="companyName">Nome da Empresa</Label>
             <Input
               id="companyName"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Minha Empresa de Energia"
+              value={user?.company_name || name}
+              readOnly
+              disabled
+              className="bg-muted"
             />
+            <p className="text-xs text-muted-foreground">
+              O nome da empresa é gerenciado centralmente no Hub.
+            </p>
           </div>
 
           <div className="space-y-3">

@@ -14,6 +14,7 @@ import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import AccessDenied from './pages/AccessDenied'
 import Index from './pages/Index'
+import ElektraAdminLogin from './pages/ElektraAdminLogin'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -62,7 +63,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 }
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+  <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light">
     <AuthProvider>
       <SolarProvider>
         <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -71,6 +72,7 @@ const App = () => (
             <Sonner />
             <Routes>
               <Route path="/login" element={<Index />} />
+              <Route path="/elektra-admin" element={<ElektraAdminLogin />} />
               <Route
                 element={
                   <ProtectedRoute>

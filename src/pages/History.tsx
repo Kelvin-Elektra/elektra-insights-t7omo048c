@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '@/hooks/use-auth'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -12,123 +10,122 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Loader2 } from 'lucide-react'
+import { format } from 'date-fns'
+import { Loader2, Search, FileText } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 
 export default function History() {
   const { user } = useAuth()
-  const isElektra = user?.role === 'User_elektra'
-
   const [analyses, setAnalyses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [companies, setCompanies] = useState<any[]>([])
-  const [selectedCompany, setSelectedCompany] = useState<string>('all')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
-    if (isElektra) {
-      pb.collection('companies')
-        .getFullList({ sort: 'name' })
-        .then(setCompanies)
-        .catch(console.error)
-    }
-  }, [isElektra])
+    const fetchHistory = async () => {
+      if (!user) return
 
-  useEffect(() => {
-    const fetchAnalyses = async () => {
-      setLoading(true)
       try {
         let filter = ''
-        if (isElektra && selectedCompany !== 'all') {
-          filter = `company = "${selectedCompany}"`
+        if (user.role !== 'User_elektra') {
+          filter = `company = "${user.company}"`
         }
 
         const records = await pb.collection('uc_analyses').getFullList({
-          filter,
           sort: '-created',
+          filter: filter,
           expand: 'company',
         })
         setAnalyses(records)
       } catch (error) {
-        console.error(error)
+        console.error('Error fetching history:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchAnalyses()
-  }, [isElektra, selectedCompany])
+    fetchHistory()
+  }, [user])
+
+  const filteredAnalyses = analyses.filter((a) => {
+    const q = search.toLowerCase()
+    return (
+      (a.consumer_name || '').toLowerCase().includes(q) ||
+      (a.uc_number || '').toLowerCase().includes(q)
+    )
+  })
+
+  if (loading) {
+    return (
+      <div className="flex justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Histórico de Relatórios</h1>
-          <p className="text-muted-foreground">Visualize análises geradas anteriormente.</p>
-        </div>
-
-        {isElektra && (
-          <div className="w-[250px]">
-            <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por empresa" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as Empresas</SelectItem>
-                {companies.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Histórico de Análises</h1>
+        <p className="text-muted-foreground">
+          {user?.role === 'User_elektra'
+            ? 'Visualize todas as análises geradas no sistema.'
+            : 'Visualize o histórico de relatórios gerados pela sua empresa.'}
+        </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Análises Salvas</CardTitle>
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+              <CardTitle>Relatórios Gerados</CardTitle>
+              <CardDescription>
+                {filteredAnalyses.length} relatório(s) encontrado(s)
+              </CardDescription>
+            </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome ou UC..."
+                className="pl-8"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : analyses.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum relatório encontrado.
+          {filteredAnalyses.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <FileText className="mx-auto h-12 w-12 opacity-20 mb-4" />
+              <p>Nenhuma análise encontrada.</p>
             </div>
           ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Data</TableHead>
                     <TableHead>Consumidor</TableHead>
-                    <TableHead>Nº UC</TableHead>
-                    {isElektra && <TableHead>Empresa</TableHead>}
-                    <TableHead>Data de Geração</TableHead>
+                    <TableHead>Unidade Consumidora (UC)</TableHead>
+                    {user?.role === 'User_elektra' && <TableHead>Empresa</TableHead>}
+                    <TableHead className="text-right">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {analyses.map((analysis) => (
+                  {filteredAnalyses.map((analysis) => (
                     <TableRow key={analysis.id}>
-                      <TableCell className="font-medium">
-                        {analysis.consumer_name || 'N/A'}
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {format(new Date(analysis.created), 'dd/MM/yyyy HH:mm')}
                       </TableCell>
+                      <TableCell>{analysis.consumer_name || 'Não informado'}</TableCell>
                       <TableCell>{analysis.uc_number || 'N/A'}</TableCell>
-                      {isElektra && (
+                      {user?.role === 'User_elektra' && (
                         <TableCell>{analysis.expand?.company?.name || 'N/A'}</TableCell>
                       )}
-                      <TableCell>
-                        {format(new Date(analysis.created), "dd 'de' MMMM 'de' yyyy, HH:mm", {
-                          locale: ptBR,
-                        })}
+                      <TableCell className="text-right">
+                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800">
+                          Concluído
+                        </span>
                       </TableCell>
                     </TableRow>
                   ))}
