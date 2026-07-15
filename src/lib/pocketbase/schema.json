@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-16T19:20:15.497Z",
+  "generatedAt": "2026-07-15T02:13:17.962Z",
   "collections": [
     {
       "name": "users",
@@ -29,19 +29,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "company_name",
@@ -72,11 +67,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "User_owner",
-            "User_employee",
-            "User_elektra"
-          ]
+          "selectValues": ["User_owner", "User_employee", "User_elektra"]
         },
         {
           "name": "hub_user_id",
@@ -129,19 +120,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "status",
@@ -207,22 +193,237 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "hsp_data",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "hsp_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "city_name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "annual",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "jan",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "feb",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mar",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "apr",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "may",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "jun",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "jul",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "aug",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sep",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "oct",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nov",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dec",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_hsp_data_state ON hsp_data (state)",
+        "CREATE INDEX idx_hsp_data_city_state ON hsp_data (city_name, state)"
+      ]
+    },
+    {
+      "name": "efficiency_analyses",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (company = @request.auth.company || @request.auth.role = 'User_elektra')",
+        "view": "@request.auth.id != '' && (company = @request.auth.company || @request.auth.role = 'User_elektra')",
+        "create": "@request.auth.id != '' && company = @request.auth.company",
+        "update": "@request.auth.id != '' && company = @request.auth.company",
+        "delete": "@request.auth.id != '' && company = @request.auth.company"
+      },
+      "fields": [
+        {
+          "name": "company",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "companies"
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "city_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "kit_power",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "expected_avg_generation",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "month",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "year",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "real_generation",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "report_data",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_efficiency_analyses_company ON efficiency_analyses (company)",
+        "CREATE INDEX idx_efficiency_analyses_user ON efficiency_analyses (user)"
+      ]
     }
   ]
 }

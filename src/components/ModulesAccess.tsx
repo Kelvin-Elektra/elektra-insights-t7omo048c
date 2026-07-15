@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useNavigate } from 'react-router-dom'
-import { FileBarChart2, SunMedium } from 'lucide-react'
+import { FileBarChart2, SunMedium, Gauge } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
   DialogHeader,
 } from '@/components/ui/dialog'
 import { DataEntryForm } from '@/components/solar/DataEntryForm'
+import { EfficiencyEntryForm } from '@/components/efficiency/EfficiencyEntryForm'
 import { useAuth } from '@/hooks/use-auth'
 import { useState } from 'react'
 import { Label } from '@/components/ui/label'
@@ -18,6 +19,7 @@ import { Input } from '@/components/ui/input'
 
 export default function ModulesAccess() {
   const [isOpen, setIsOpen] = useState(false)
+  const [efficiencyOpen, setEfficiencyOpen] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuth()
 
@@ -61,6 +63,44 @@ export default function ModulesAccess() {
               onSuccess={() => {
                 setIsOpen(false)
                 navigate('/uc-analysis')
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={efficiencyOpen} onOpenChange={setEfficiencyOpen}>
+          <DialogTrigger asChild>
+            <Card className="hover:shadow-lg transition-all border-primary/30 cursor-pointer group p-4 border-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-2xl group-hover:text-primary transition-colors">
+                  <Gauge className="h-8 w-8 text-primary shrink-0" />
+                  Análise de eficiência energética
+                </CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Compare a geração real do seu kit solar com a estimativa teórica baseada na
+                  irradiância local (HSP).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full sm:w-auto hover:scale-[1.02] transition-transform text-lg py-6 px-8 shadow-md">
+                  <Gauge className="mr-2 h-5 w-5" />
+                  Iniciar Análise de Eficiência
+                </Button>
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="mb-4 border-b pb-4">
+              <DialogTitle className="text-2xl">Análise de Eficiência Energética</DialogTitle>
+              <DialogDescription className="text-base">
+                Insira os dados do kit solar e a geração real para comparar com a estimativa
+                teórica.
+              </DialogDescription>
+            </DialogHeader>
+            <EfficiencyEntryForm
+              onSuccess={() => {
+                setEfficiencyOpen(false)
+                navigate('/efficiency-analysis')
               }}
             />
           </DialogContent>
