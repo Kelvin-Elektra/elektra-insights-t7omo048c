@@ -56,7 +56,7 @@ const MONTH_LABELS = [
   'Nov',
   'Dez',
 ]
-const AVG_DAYS = 30.44
+const AVG_DAYS = 30
 
 interface EfficiencyContextType {
   cityName: string

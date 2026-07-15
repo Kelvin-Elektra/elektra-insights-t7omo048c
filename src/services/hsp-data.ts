@@ -21,19 +21,34 @@ export interface HspData {
 }
 
 export const getStates = async (): Promise<string[]> => {
-  const records = await pb.collection('hsp_data').getFullList({ fields: 'state' })
-  return [...new Set(records.map((r: any) => r.state))].sort()
+  try {
+    const records = await pb.collection('hsp_data').getFullList()
+    return [...new Set(records.map((r: any) => r.state))].sort()
+  } catch (error) {
+    console.error('Failed to fetch states from hsp_data:', error)
+    throw error
+  }
 }
 
 export const getCitiesByState = async (state: string): Promise<HspData[]> => {
-  return pb.collection('hsp_data').getFullList({
-    filter: `state = "${state}"`,
-    sort: 'city_name',
-  })
+  try {
+    return await pb.collection('hsp_data').getFullList({
+      filter: `state = "${state}"`,
+      sort: 'city_name',
+    })
+  } catch (error) {
+    console.error(`Failed to fetch cities for state "${state}":`, error)
+    throw error
+  }
 }
 
 export const getHspByCity = async (cityName: string, state: string): Promise<HspData> => {
-  return pb
-    .collection('hsp_data')
-    .getFirstListItem(`city_name = "${cityName}" && state = "${state}"`)
+  try {
+    return await pb
+      .collection('hsp_data')
+      .getFirstListItem(`city_name = "${cityName}" && state = "${state}"`)
+  } catch (error) {
+    console.error(`Failed to fetch HSP data for ${cityName}/${state}:`, error)
+    throw error
+  }
 }

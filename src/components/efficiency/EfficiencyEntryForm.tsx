@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import { useEffect, useState } from 'react'
 import { getStates, getCitiesByState } from '@/services/hsp-data'
+import { AlertCircle } from 'lucide-react'
 
 export interface EfficiencyEntryFormProps {
   onSuccess?: () => void
@@ -35,20 +36,25 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
 
   const [states, setStates] = useState<string[]>([])
   const [cities, setCities] = useState<string[]>([])
+  const [statesError, setStatesError] = useState(false)
+  const [citiesError, setCitiesError] = useState(false)
 
   useEffect(() => {
+    setStatesError(false)
     getStates()
       .then(setStates)
-      .catch(() => {})
+      .catch(() => setStatesError(true))
   }, [])
 
   useEffect(() => {
     if (state) {
+      setCitiesError(false)
       getCitiesByState(state)
         .then((records) => setCities(records.map((r) => r.city_name)))
-        .catch(() => {})
+        .catch(() => setCitiesError(true))
     } else {
       setCities([])
+      setCitiesError(false)
     }
   }, [state])
 
@@ -87,7 +93,19 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
   return (
     <div className="flex flex-col space-y-6 pb-2">
       <div className="space-y-6">
-        {states.length === 0 && (
+        {statesError && (
+          <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            Erro ao carregar os estados. Verifique sua conexao e tente novamente.
+          </div>
+        )}
+        {citiesError && (
+          <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            Erro ao carregar as cidades. Verifique sua conexao e tente novamente.
+          </div>
+        )}
+        {!statesError && states.length === 0 && (
           <p className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200 dark:border-amber-900">
             Nenhum dado de HSP encontrado. Importe os dados de irradiacao solar na colecao
             &quot;hsp_data&quot; atraves do painel administrativo do Skip Cloud.
