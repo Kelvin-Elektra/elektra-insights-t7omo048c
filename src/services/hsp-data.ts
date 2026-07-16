@@ -2,22 +2,9 @@ import pb from '@/lib/pocketbase/client'
 
 export interface HspData {
   id: string
-  hsp_id: string
-  city_name: string
   state: string
-  annual: number
-  jan: number
-  feb: number
-  mar: number
-  apr: number
-  may: number
-  jun: number
-  jul: number
-  aug: number
-  sep: number
-  oct: number
-  nov: number
-  dec: number
+  city: string
+  hsp_value: number
 }
 
 export const getStates = async (): Promise<string[]> => {
@@ -34,7 +21,7 @@ export const getCitiesByState = async (state: string): Promise<HspData[]> => {
   try {
     return await pb.collection('hsp_data').getFullList({
       filter: `state = "${state}"`,
-      sort: 'city_name',
+      sort: 'city',
     })
   } catch (error) {
     console.error(`Failed to fetch cities for state "${state}":`, error)
@@ -42,13 +29,13 @@ export const getCitiesByState = async (state: string): Promise<HspData[]> => {
   }
 }
 
-export const getHspByCity = async (cityName: string, state: string): Promise<HspData> => {
+export const getHspByCity = async (city: string, state: string): Promise<HspData> => {
   try {
     return await pb
       .collection('hsp_data')
-      .getFirstListItem(`city_name = "${cityName}" && state = "${state}"`)
+      .getFirstListItem(`city = "${city}" && state = "${state}"`)
   } catch (error) {
-    console.error(`Failed to fetch HSP data for ${cityName}/${state}:`, error)
+    console.error(`Failed to fetch HSP data for ${city}/${state}:`, error)
     throw error
   }
 }

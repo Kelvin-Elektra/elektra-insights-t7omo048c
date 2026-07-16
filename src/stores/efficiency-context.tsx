@@ -28,20 +28,6 @@ export interface EfficiencyReport {
   total_estimated: number
 }
 
-const MONTH_FIELDS = [
-  'jan',
-  'feb',
-  'mar',
-  'apr',
-  'may',
-  'jun',
-  'jul',
-  'aug',
-  'sep',
-  'oct',
-  'nov',
-  'dec',
-]
 const MONTH_LABELS = [
   'Jan',
   'Fev',
@@ -98,14 +84,12 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
   const generateReport = async () => {
     if (!cityName || !state || kitPower <= 0) return
     const hspData: HspData = await getHspByCity(cityName, state)
-    const annualHsp = (hspData.annual || 0) / 1000
-    const annualAvgTheoretical = kitPower * annualHsp * AVG_DAYS
+    const hspValue = (hspData.hsp_value || 0) / 1000
+    const annualAvgTheoretical = kitPower * hspValue * AVG_DAYS
     const lossFactor = annualAvgTheoretical > 0 ? expectedAvgGeneration / annualAvgTheoretical : 1
 
     const items: EfficiencyReportItem[] = draftEntries.map((entry) => {
       const monthIdx = parseInt(entry.month) - 1
-      const hspField = MONTH_FIELDS[monthIdx] || 'jan'
-      const hspValue = ((hspData as any)[hspField] || 0) / 1000
       const theoretical = kitPower * hspValue * AVG_DAYS
       const estimated = theoretical * lossFactor
       const idm = estimated > 0 ? (entry.real_generation / estimated) * 100 : 0

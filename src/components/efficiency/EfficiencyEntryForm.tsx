@@ -50,7 +50,7 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
     if (state) {
       setCitiesError(false)
       getCitiesByState(state)
-        .then((records) => setCities(records.map((r) => r.city_name)))
+        .then((records) => setCities(records.map((r) => r.city)))
         .catch(() => setCitiesError(true))
     } else {
       setCities([])
