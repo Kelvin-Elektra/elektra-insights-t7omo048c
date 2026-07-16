@@ -33,6 +33,7 @@ export default function Layout() {
     ? [
         { name: 'Manutenção', to: '/' },
         { name: 'Histórico Global', to: '/history' },
+        { name: 'HSP Lookup', to: '/hsp-lookup' },
         { name: 'Módulos (Teste)', to: '/modules-test' },
       ]
     : isAdmin

@@ -17,6 +17,7 @@ import Layout from './components/Layout'
 import AccessDenied from './pages/AccessDenied'
 import Index from './pages/Index'
 import ElektraAdminLogin from './pages/ElektraAdminLogin'
+import HspLookup from './pages/HspLookup'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -100,6 +101,14 @@ const App = () => (
                     element={
                       <ElektraProtectedRoute>
                         <ModulesTest />
+                      </ElektraProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/hsp-lookup"
+                    element={
+                      <ElektraProtectedRoute>
+                        <HspLookup />
                       </ElektraProtectedRoute>
                     }
                   />
