@@ -4,7 +4,19 @@ export interface HspData {
   id: string
   state: string
   city: string
-  hsp_value: number
+  annual: number
+  jan: number
+  feb: number
+  mar: number
+  apr: number
+  may: number
+  jun: number
+  jul: number
+  aug: number
+  sep: number
+  oct: number
+  nov: number
+  dec: number
 }
 
 export const getStates = async (): Promise<string[]> => {
@@ -38,4 +50,9 @@ export const getHspByCity = async (city: string, state: string): Promise<HspData
     console.error(`Failed to fetch HSP data for ${city}/${state}:`, error)
     throw error
   }
+}
+
+export const normalizeHsp = (rawValue: number): number => {
+  if (!rawValue || rawValue <= 0) return 0
+  return rawValue / 1000
 }

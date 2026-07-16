@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
-import { getHspByCity, type HspData } from '@/services/hsp-data'
+import { getHspByCity, normalizeHsp } from '@/services/hsp-data'
 
 export interface EfficiencyEntry {
   id: string
@@ -83,8 +83,8 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
 
   const generateReport = async () => {
     if (!cityName || !state || kitPower <= 0) return
-    const hspData: HspData = await getHspByCity(cityName, state)
-    const hspValue = (hspData.hsp_value || 0) / 1000
+    const hspData = await getHspByCity(cityName, state)
+    const hspValue = normalizeHsp(hspData.annual || 0)
     const annualAvgTheoretical = kitPower * hspValue * AVG_DAYS
     const lossFactor = annualAvgTheoretical > 0 ? expectedAvgGeneration / annualAvgTheoretical : 1
 
