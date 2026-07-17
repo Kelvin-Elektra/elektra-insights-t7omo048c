@@ -2,7 +2,7 @@ import { useEfficiency, EfficiencyEntry } from '@/stores/efficiency-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Plus, Trash2, Zap, Calculator, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Zap, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Select,
@@ -27,6 +27,7 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
     kitPower,
     setKitPower,
     expectedAvgGeneration,
+    setExpectedAvgGeneration,
     draftEntries,
     setDraftEntries,
     generateReport,
@@ -162,20 +163,21 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-              <Calculator className="h-3 w-3" /> Geração Média Esperada (kWh/mês)
+            <Label className="text-xs font-semibold text-muted-foreground">
+              Geração Média Esperada (kWh/mês)
             </Label>
             <Input
               type="number"
-              readOnly
-              value={expectedAvgGeneration || ''}
-              placeholder="Auto-calculado via HSP"
-              className="h-9 text-sm bg-muted/50 cursor-not-allowed"
+              min="0"
+              step="0.01"
+              placeholder="Ex: 450"
+              value={expectedAvgGeneration === 0 ? '' : expectedAvgGeneration}
+              onChange={(e) => setExpectedAvgGeneration(Number(e.target.value))}
+              className="h-9 text-sm"
             />
             {hspRecord && (
               <p className="text-xs text-muted-foreground">
-                HSP anual: {(hspRecord.annual / 1000).toFixed(3)} kWh/m²/dia · Fator:{' '}
-                {EFFICIENCY_FACTOR_DISPLAY}
+                HSP anual: {hspRecord.annual?.toFixed(2) || 'N/A'} kWh/m²/dia
               </p>
             )}
           </div>
@@ -266,7 +268,7 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
           className="w-full h-14 text-lg font-semibold hover:scale-[1.02] transition-transform shadow-md"
           size="lg"
           onClick={handleGenerateReport}
-          disabled={!cityName || !state || kitPower <= 0}
+          disabled={!cityName || !state || kitPower <= 0 || expectedAvgGeneration <= 0}
         >
           <Zap className="h-6 w-6 mr-2" /> Gerar Análise de Eficiência
         </Button>
@@ -274,5 +276,3 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
     </div>
   )
 }
-
-const EFFICIENCY_FACTOR_DISPLAY = '78%'

@@ -9,20 +9,13 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { BarChart, Bar, XAxis, CartesianGrid } from 'recharts'
-import {
-  Gauge,
-  Zap,
-  TrendingUp,
-  TrendingDown,
-  Download,
-  SunMedium,
-  AlertCircle,
-} from 'lucide-react'
+import { Gauge, Zap, TrendingUp, TrendingDown, Download, SunMedium, Percent } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { EfficiencyComparisonTable } from '@/components/efficiency/EfficiencyComparisonTable'
 
 const chartConfig = {
-  real: { label: 'Geracao Real', color: 'hsl(var(--chart-1))' },
-  estimated: { label: 'Geracao Estimada', color: 'hsl(var(--chart-2))' },
+  real: { label: 'Geração Real', color: 'hsl(var(--chart-1))' },
+  estimated: { label: 'Geração Esperada', color: 'hsl(var(--chart-2))' },
 } satisfies ChartConfig
 
 export function EfficiencyDashboard() {
@@ -34,8 +27,8 @@ export function EfficiencyDashboard() {
         <SunMedium className="h-16 w-16 text-muted-foreground/30 mb-6" />
         <h3 className="text-xl font-bold tracking-tight mb-2">Aguardando Dados</h3>
         <p className="text-muted-foreground max-w-sm">
-          Insira os dados do seu kit solar e clique em &quot;Gerar Analise&quot; para visualizar a
-          comparacao de eficiencia.
+          Insira os dados do seu kit solar e clique em &quot;Gerar Análise&quot; para visualizar a
+          comparação de eficiência.
         </p>
       </div>
     )
@@ -54,6 +47,9 @@ export function EfficiencyDashboard() {
         ? 'text-amber-500'
         : 'text-destructive'
 
+  const totalDelta = report.total_delta ?? report.total_real - report.total_estimated
+  const deltaPct = report.delta_percentage ?? 0
+
   return (
     <div className="space-y-6 animate-fade-in-up print:m-0 max-w-5xl mx-auto">
       <style>{`
@@ -66,7 +62,7 @@ export function EfficiencyDashboard() {
       <div className="hidden print:block text-center border-b pb-6 mb-6">
         <div className="flex items-center justify-center gap-3 mb-4">
           <SunMedium className="h-10 w-10 text-primary" />
-          <h1 className="text-3xl font-bold tracking-tight">Analise de Eficiencia Energetica</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Análise de Eficiência Energética</h1>
         </div>
         <p className="text-muted-foreground text-sm">
           {cityName} - {state} | Kit: {kitPower} kWp | Gerado em{' '}
@@ -76,7 +72,7 @@ export function EfficiencyDashboard() {
 
       <div className="flex items-center justify-between print:hidden bg-muted/30 p-4 rounded-xl border">
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold tracking-tight">Analise de Eficiencia</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Análise de Eficiência</h2>
           <p className="text-sm text-muted-foreground">
             {cityName} - {state} | Kit: {kitPower} kWp
           </p>
@@ -93,7 +89,7 @@ export function EfficiencyDashboard() {
         <CardContent className="p-8 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
           <div className="space-y-3">
             <p className="text-sm font-semibold uppercase tracking-wider text-primary flex items-center gap-2">
-              <Gauge className="h-4 w-4" /> Indice de Desempenho Medio (IDM)
+              <Gauge className="h-4 w-4" /> Índice de Desempenho Médio (IDM)
             </p>
             <h2 className={`text-5xl sm:text-6xl font-bold tracking-tight ${idmColor}`}>
               {report.avg_idm.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}
@@ -102,52 +98,56 @@ export function EfficiencyDashboard() {
           </div>
           <div className="text-left sm:text-right bg-background/50 backdrop-blur-sm p-4 rounded-xl border">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-              Fator de Perda
+              Delta Total
             </p>
-            <p className="text-2xl font-bold">
-              {report.loss_factor.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}
+            <p
+              className={`text-2xl font-bold ${totalDelta >= 0 ? 'text-emerald-500' : 'text-destructive'}`}
+            >
+              {totalDelta >= 0 ? '+' : ''}
+              {totalDelta.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kWh
+            </p>
+            <p
+              className={`text-sm font-semibold ${deltaPct >= 0 ? 'text-emerald-500' : 'text-destructive'}`}
+            >
+              ({deltaPct >= 0 ? '+' : ''}
+              {deltaPct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%)
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {(() => {
-        const totalDelta = report.total_delta ?? report.total_real - report.total_estimated
-        return (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <MetricCard
-              title="Geracao Real Total"
-              value={report.total_real}
-              icon={Zap}
-              color="text-chart-1"
-            />
-            <MetricCard
-              title="Geracao Estimada Total"
-              value={report.total_estimated}
-              icon={TrendingUp}
-              color="text-chart-2"
-            />
-            <MetricCard
-              title="Delta (Real - Est.)"
-              value={totalDelta}
-              icon={totalDelta >= 0 ? TrendingUp : TrendingDown}
-              color={totalDelta >= 0 ? 'text-emerald-500' : 'text-destructive'}
-            />
-            <MetricCard
-              title="Meses Analisados"
-              value={report.items.length}
-              suffix=""
-              icon={AlertCircle}
-              color="text-primary"
-            />
-          </div>
-        )
-      })()}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <MetricCard
+          title="Geração Real Total"
+          value={report.total_real}
+          icon={Zap}
+          color="text-chart-1"
+        />
+        <MetricCard
+          title="Geração Esperada Total"
+          value={report.total_estimated}
+          icon={TrendingUp}
+          color="text-chart-2"
+        />
+        <MetricCard
+          title="Delta (Real - Esp.)"
+          value={totalDelta}
+          icon={totalDelta >= 0 ? TrendingUp : TrendingDown}
+          color={totalDelta >= 0 ? 'text-emerald-500' : 'text-destructive'}
+        />
+        <MetricCard
+          title="Delta (%)"
+          value={deltaPct}
+          suffix="%"
+          icon={Percent}
+          color={deltaPct >= 0 ? 'text-emerald-500' : 'text-destructive'}
+        />
+      </div>
 
       <Card className="shadow-sm print:break-inside-avoid">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold text-muted-foreground">
-            Geracao Real vs Estimada (kWh)
+            Geração Real vs Esperada (kWh)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -178,8 +178,10 @@ export function EfficiencyDashboard() {
         </CardContent>
       </Card>
 
+      <EfficiencyComparisonTable />
+
       <div className="hidden print:block mt-auto pt-8 border-t text-center text-sm font-bold">
-        <p>Produto por Elektra Engenharia & Solucoes</p>
+        <p>Produto por Elektra Engenharia & Soluções</p>
       </div>
     </div>
   )
