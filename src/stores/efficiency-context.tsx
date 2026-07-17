@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
-import { getHspByCity, normalizeHsp } from '@/services/hsp-data'
+import { getHspByCity, normalizeHsp, type HspData } from '@/services/hsp-data'
 
 export interface EfficiencyEntry {
   id: string
@@ -26,6 +26,8 @@ export interface EfficiencyReport {
   avg_idm: number
   total_real: number
   total_estimated: number
+  total_delta?: number
+  delta_percentage?: number
 }
 
 const MONTH_LABELS = [
@@ -42,7 +44,22 @@ const MONTH_LABELS = [
   'Nov',
   'Dez',
 ]
+const MONTH_KEYS = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
+]
 const AVG_DAYS = 30
+const EFFICIENCY_FACTOR = 0.78
 
 interface EfficiencyContextType {
   cityName: string
@@ -60,6 +77,9 @@ interface EfficiencyContextType {
   reset: () => void
   loadAnalysis: (record: any) => void
   currentAnalysisId: string | null
+  hspRecord: HspData | null
+  selectLocation: (record: HspData) => void
+  clearLocation: () => void
 }
 
 export const EfficiencyContext = createContext<EfficiencyContextType | undefined>(undefined)
@@ -68,6 +88,9 @@ const getCurrentMonth = () => {
   const d = new Date()
   return { month: String(d.getMonth() + 1).padStart(2, '0'), year: String(d.getFullYear()) }
 }
+
+const calcExpected = (kp: number, annual: number) =>
+  Math.round(kp * normalizeHsp(annual || 0) * AVG_DAYS * EFFICIENCY_FACTOR)
 
 export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
   const [cityName, setCityName] = useState('')
@@ -80,22 +103,51 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
   })
   const [report, setReport] = useState<EfficiencyReport | null>(null)
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null)
+  const [hspRecord, setHspRecord] = useState<HspData | null>(null)
+
+  useEffect(() => {
+    if (hspRecord && kitPower > 0) {
+      setExpectedAvgGeneration(calcExpected(kitPower, hspRecord.annual))
+    }
+  }, [kitPower, hspRecord])
+
+  const selectLocation = (record: HspData) => {
+    setHspRecord(record)
+    setCityName(record.city)
+    setState(record.state)
+    if (kitPower > 0) {
+      setExpectedAvgGeneration(calcExpected(kitPower, record.annual))
+    }
+  }
+
+  const clearLocation = () => {
+    setHspRecord(null)
+    setCityName('')
+    setExpectedAvgGeneration(0)
+  }
 
   const generateReport = async () => {
     if (!cityName || !state || kitPower <= 0) return
-    const hspData = await getHspByCity(cityName, state)
-    const hspValue = normalizeHsp(hspData.annual || 0)
-    const annualAvgTheoretical = kitPower * hspValue * AVG_DAYS
+    let hspData: HspData | null = hspRecord
+    if (!hspData) {
+      hspData = await getHspByCity(cityName, state)
+      setHspRecord(hspData)
+    }
+    const annualHsp = normalizeHsp(hspData.annual || 0)
+    const annualAvgTheoretical = kitPower * annualHsp * AVG_DAYS
     const lossFactor = annualAvgTheoretical > 0 ? expectedAvgGeneration / annualAvgTheoretical : 1
 
     const items: EfficiencyReportItem[] = draftEntries.map((entry) => {
       const monthIdx = parseInt(entry.month) - 1
-      const theoretical = kitPower * hspValue * AVG_DAYS
+      const monthKey = MONTH_KEYS[monthIdx]
+      const rawMonthly = (hspData as any)[monthKey] as number
+      const monthlyHsp = normalizeHsp(rawMonthly || hspData.annual || 0)
+      const theoretical = kitPower * monthlyHsp * AVG_DAYS
       const estimated = theoretical * lossFactor
       const idm = estimated > 0 ? (entry.real_generation / estimated) * 100 : 0
       return {
         ...entry,
-        hsp_value: hspValue,
+        hsp_value: monthlyHsp,
         theoretical,
         estimated,
         idm,
@@ -106,12 +158,17 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
     const avgIdm = items.length > 0 ? items.reduce((acc, i) => acc + i.idm, 0) / items.length : 0
     const totalReal = items.reduce((acc, i) => acc + i.real_generation, 0)
     const totalEstimated = items.reduce((acc, i) => acc + i.estimated, 0)
+    const totalDelta = totalReal - totalEstimated
+    const deltaPct = totalEstimated > 0 ? (totalDelta / totalEstimated) * 100 : 0
+
     const reportData: EfficiencyReport = {
       items,
       loss_factor: lossFactor,
       avg_idm: avgIdm,
       total_real: totalReal,
       total_estimated: totalEstimated,
+      total_delta: totalDelta,
+      delta_percentage: deltaPct,
     }
     setReport(reportData)
 
@@ -147,6 +204,7 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
     setState(record.state || '')
     setKitPower(record.kit_power || 0)
     setExpectedAvgGeneration(record.expected_avg_generation || 0)
+    setHspRecord(null)
     const rd = record.report_data
     if (rd && rd.items) {
       setDraftEntries(
@@ -167,6 +225,7 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
     setState('')
     setKitPower(0)
     setExpectedAvgGeneration(0)
+    setHspRecord(null)
     const { month, year } = getCurrentMonth()
     setDraftEntries([{ id: crypto.randomUUID(), month, year, real_generation: 0 }])
     setReport(null)
@@ -190,6 +249,9 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
         reset,
         loadAnalysis,
         currentAnalysisId,
+        hspRecord,
+        selectLocation,
+        clearLocation,
       }}
     >
       {children}

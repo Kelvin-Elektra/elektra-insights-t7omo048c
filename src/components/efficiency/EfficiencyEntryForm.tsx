@@ -2,7 +2,7 @@ import { useEfficiency, EfficiencyEntry } from '@/stores/efficiency-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Plus, Trash2, Zap } from 'lucide-react'
+import { Plus, Trash2, Zap, Calculator, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Select,
@@ -12,8 +12,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useEffect, useState } from 'react'
-import { getStates, getCitiesByState } from '@/services/hsp-data'
-import { AlertCircle } from 'lucide-react'
+import { getStates, getCitiesByState, type HspData } from '@/services/hsp-data'
+import { Combobox } from '@/components/ui/combobox'
 
 export interface EfficiencyEntryFormProps {
   onSuccess?: () => void
@@ -22,39 +22,41 @@ export interface EfficiencyEntryFormProps {
 export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
   const {
     cityName,
-    setCityName,
     state,
     setState,
     kitPower,
     setKitPower,
     expectedAvgGeneration,
-    setExpectedAvgGeneration,
     draftEntries,
     setDraftEntries,
     generateReport,
+    selectLocation,
+    clearLocation,
+    hspRecord,
   } = useEfficiency()
 
   const [states, setStates] = useState<string[]>([])
-  const [cities, setCities] = useState<string[]>([])
-  const [statesError, setStatesError] = useState(false)
-  const [citiesError, setCitiesError] = useState(false)
+  const [cityRecords, setCityRecords] = useState<HspData[]>([])
+  const [loadingStates, setLoadingStates] = useState(true)
+  const [loadingCities, setLoadingCities] = useState(false)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
-    setStatesError(false)
     getStates()
       .then(setStates)
-      .catch(() => setStatesError(true))
+      .catch(() => setLoadError(true))
+      .finally(() => setLoadingStates(false))
   }, [])
 
   useEffect(() => {
     if (state) {
-      setCitiesError(false)
+      setLoadingCities(true)
       getCitiesByState(state)
-        .then((records) => setCities(records.map((r) => r.city)))
-        .catch(() => setCitiesError(true))
+        .then(setCityRecords)
+        .catch(() => setLoadError(true))
+        .finally(() => setLoadingCities(false))
     } else {
-      setCities([])
-      setCitiesError(false)
+      setCityRecords([])
     }
   }, [state])
 
@@ -86,73 +88,68 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
   }
 
   const removeRow = (id: string) => setDraftEntries(draftEntries.filter((e) => e.id !== id))
-
   const updateRow = (id: string, field: keyof EfficiencyEntry, value: string | number) =>
     setDraftEntries(draftEntries.map((e) => (e.id === id ? { ...e, [field]: value } : e)))
+
+  const stateOptions = states.map((s) => ({ value: s, label: s }))
+  const cityOptions = cityRecords.map((c) => ({ value: c.city, label: c.city }))
+
+  const handleCitySelect = (city: string) => {
+    if (!city) {
+      clearLocation()
+      return
+    }
+    const record = cityRecords.find((r) => r.city === city)
+    if (record) selectLocation(record)
+  }
 
   return (
     <div className="flex flex-col space-y-6 pb-2">
       <div className="space-y-6">
-        {statesError && (
+        {loadError && (
           <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            Erro ao carregar os estados. Verifique sua conexao e tente novamente.
+            Erro ao carregar os dados. Verifique sua conexão e tente novamente.
           </div>
         )}
-        {citiesError && (
-          <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg border border-destructive/20">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            Erro ao carregar as cidades. Verifique sua conexao e tente novamente.
-          </div>
-        )}
-        {!statesError && states.length === 0 && (
+        {!loadError && states.length === 0 && !loadingStates && (
           <p className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200 dark:border-amber-900">
-            Nenhum dado de HSP encontrado. Importe os dados de irradiacao solar na colecao
-            &quot;hsp_data&quot; atraves do painel administrativo do Skip Cloud.
+            Nenhum dado de HSP encontrado. Importe os dados de irradiação solar na coleção
+            &quot;hsp_data&quot;.
           </p>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-muted-foreground">Estado</Label>
-            <Select
+            <Combobox
+              options={stateOptions}
               value={state}
-              onValueChange={(v) => {
+              onChange={(v) => {
                 setState(v)
-                setCityName('')
+                clearLocation()
               }}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Selecione o estado" />
-              </SelectTrigger>
-              <SelectContent>
-                {states.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Buscar estado..."
+              searchPlaceholder="Digite a UF (ex: SP)..."
+              emptyMessage="Estado não encontrado na base de dados HSP"
+            />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-muted-foreground">Cidade</Label>
-            <Select value={cityName} onValueChange={setCityName} disabled={!state}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Selecione a cidade" />
-              </SelectTrigger>
-              <SelectContent>
-                {cities.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Combobox
+              options={cityOptions}
+              value={cityName}
+              onChange={handleCitySelect}
+              placeholder="Buscar cidade..."
+              searchPlaceholder="Digite o nome da cidade..."
+              emptyMessage="Localidade não encontrada na base de dados HSP"
+              disabled={!state || loadingCities}
+            />
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-muted-foreground">
-              Potencia do Kit (kWp)
+              Potência do Kit (kWp)
             </Label>
             <Input
               type="number"
@@ -165,28 +162,33 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">
-              Geracao Media Esperada (kWh/mes)
+            <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+              <Calculator className="h-3 w-3" /> Geração Média Esperada (kWh/mês)
             </Label>
             <Input
               type="number"
-              min="0"
-              placeholder="Ex: 600"
-              value={expectedAvgGeneration === 0 ? '' : expectedAvgGeneration}
-              onChange={(e) => setExpectedAvgGeneration(Number(e.target.value))}
-              className="h-9 text-sm"
+              readOnly
+              value={expectedAvgGeneration || ''}
+              placeholder="Auto-calculado via HSP"
+              className="h-9 text-sm bg-muted/50 cursor-not-allowed"
             />
+            {hspRecord && (
+              <p className="text-xs text-muted-foreground">
+                HSP anual: {(hspRecord.annual / 1000).toFixed(3)} kWh/m²/dia · Fator:{' '}
+                {EFFICIENCY_FACTOR_DISPLAY}
+              </p>
+            )}
           </div>
         </div>
         <div className="space-y-4">
-          <h3 className="text-base font-semibold border-b pb-2">Geracao Real por Mes</h3>
+          <h3 className="text-base font-semibold border-b pb-2">Geração Real por Mês</h3>
           {draftEntries.map((entry) => (
             <div
               key={entry.id}
               className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_2fr_auto] gap-4 items-end bg-background p-4 rounded-xl border shadow-sm transition-all hover:border-primary/40"
             >
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-muted-foreground">Mes</Label>
+                <Label className="text-sm font-semibold text-muted-foreground">Mês</Label>
                 <Select
                   value={entry.month}
                   onValueChange={(val) => updateRow(entry.id, 'month', val)}
@@ -229,7 +231,7 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-muted-foreground">
-                  Geracao Real (kWh)
+                  Geração Real (kWh)
                 </Label>
                 <Input
                   type="number"
@@ -255,7 +257,7 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
             className="w-full mt-4 h-12 border-dashed hover:bg-muted/50 hover:border-primary/50 transition-colors"
             onClick={addRow}
           >
-            <Plus className="h-4 w-4 mr-2" /> Adicionar Mes Anterior
+            <Plus className="h-4 w-4 mr-2" /> Adicionar Mês Anterior
           </Button>
         </div>
       </div>
@@ -266,9 +268,11 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
           onClick={handleGenerateReport}
           disabled={!cityName || !state || kitPower <= 0}
         >
-          <Zap className="h-6 w-6 mr-2" /> Gerar Analise de Eficiencia
+          <Zap className="h-6 w-6 mr-2" /> Gerar Análise de Eficiência
         </Button>
       </div>
     </div>
   )
 }
+
+const EFFICIENCY_FACTOR_DISPLAY = '78%'

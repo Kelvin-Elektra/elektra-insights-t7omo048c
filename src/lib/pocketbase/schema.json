@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-16T23:44:46.996Z",
+  "generatedAt": "2026-07-17T22:03:02.737Z",
   "collections": [
     {
       "name": "users",
@@ -302,8 +302,8 @@
       "name": "hsp_data",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
+        "list": "",
+        "view": "",
         "create": null,
         "update": null,
         "delete": null

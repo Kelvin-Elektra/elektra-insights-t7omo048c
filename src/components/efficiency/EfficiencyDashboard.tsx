@@ -9,7 +9,15 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { BarChart, Bar, XAxis, CartesianGrid } from 'recharts'
-import { Gauge, Zap, TrendingUp, Download, SunMedium, AlertCircle } from 'lucide-react'
+import {
+  Gauge,
+  Zap,
+  TrendingUp,
+  TrendingDown,
+  Download,
+  SunMedium,
+  AlertCircle,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const chartConfig = {
@@ -103,27 +111,38 @@ export function EfficiencyDashboard() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <MetricCard
-          title="Geracao Real Total"
-          value={report.total_real}
-          icon={Zap}
-          color="text-chart-1"
-        />
-        <MetricCard
-          title="Geracao Estimada Total"
-          value={report.total_estimated}
-          icon={TrendingUp}
-          color="text-chart-2"
-        />
-        <MetricCard
-          title="Meses Analisados"
-          value={report.items.length}
-          suffix=""
-          icon={AlertCircle}
-          color="text-primary"
-        />
-      </div>
+      {(() => {
+        const totalDelta = report.total_delta ?? report.total_real - report.total_estimated
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <MetricCard
+              title="Geracao Real Total"
+              value={report.total_real}
+              icon={Zap}
+              color="text-chart-1"
+            />
+            <MetricCard
+              title="Geracao Estimada Total"
+              value={report.total_estimated}
+              icon={TrendingUp}
+              color="text-chart-2"
+            />
+            <MetricCard
+              title="Delta (Real - Est.)"
+              value={totalDelta}
+              icon={totalDelta >= 0 ? TrendingUp : TrendingDown}
+              color={totalDelta >= 0 ? 'text-emerald-500' : 'text-destructive'}
+            />
+            <MetricCard
+              title="Meses Analisados"
+              value={report.items.length}
+              suffix=""
+              icon={AlertCircle}
+              color="text-primary"
+            />
+          </div>
+        )
+      })()}
 
       <Card className="shadow-sm print:break-inside-avoid">
         <CardHeader className="pb-2">
