@@ -19,10 +19,18 @@ export interface HspData {
   dec: number
 }
 
+let statesCache: string[] | null = null
+const citiesCache = new Map<string, HspData[]>()
+
 export const getStates = async (): Promise<string[]> => {
+  if (statesCache) return statesCache
   try {
-    const records = await pb.collection('hsp_data').getFullList()
-    return [...new Set(records.map((r: any) => r.state))].sort()
+    const records = await pb.collection('hsp_data').getFullList({
+      fields: 'state',
+      sort: 'state',
+    })
+    statesCache = [...new Set(records.map((r: any) => r.state))].sort()
+    return statesCache
   } catch (error) {
     console.error('Failed to fetch states from hsp_data:', error)
     throw error
@@ -30,11 +38,14 @@ export const getStates = async (): Promise<string[]> => {
 }
 
 export const getCitiesByState = async (state: string): Promise<HspData[]> => {
+  if (citiesCache.has(state)) return citiesCache.get(state)!
   try {
-    return await pb.collection('hsp_data').getFullList({
+    const records = await pb.collection('hsp_data').getFullList({
       filter: `state = "${state}"`,
       sort: 'city',
     })
+    citiesCache.set(state, records as unknown as HspData[])
+    return records as unknown as HspData[]
   } catch (error) {
     console.error(`Failed to fetch cities for state "${state}":`, error)
     throw error

@@ -8,7 +8,7 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from '@/components/ui/chart'
-import { BarChart, Bar, XAxis, CartesianGrid } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { Gauge, Zap, TrendingUp, TrendingDown, Download, SunMedium, Percent } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EfficiencyComparisonTable } from '@/components/efficiency/EfficiencyComparisonTable'
@@ -17,7 +17,7 @@ import { EfficiencySummary } from '@/components/efficiency/EfficiencySummary'
 
 const chartConfig = {
   real: { label: 'Geração Real', color: 'hsl(var(--chart-1))' },
-  estimated: { label: 'Geração Esperada', color: 'hsl(var(--chart-2))' },
+  estimated: { label: 'Geração Projetada', color: 'hsl(var(--chart-2))' },
 } satisfies ChartConfig
 
 export function EfficiencyDashboard() {
@@ -42,12 +42,16 @@ export function EfficiencyDashboard() {
     estimated: Math.round(item.estimated),
   }))
 
+  const chartHeight = Math.max(300, report.items.length * 70 + 80)
+
   const idmColor =
     report.avg_idm >= 90
       ? 'text-emerald-500'
-      : report.avg_idm >= 70
+      : report.avg_idm >= 75
         ? 'text-amber-500'
-        : 'text-destructive'
+        : report.avg_idm >= 60
+          ? 'text-orange-500'
+          : 'text-destructive'
 
   const totalDelta = report.total_delta ?? report.total_real - report.total_estimated
   const deltaPct = report.delta_percentage ?? 0
@@ -73,7 +77,6 @@ export function EfficiencyDashboard() {
             </div>
           </div>
         )}
-
         <p className="text-muted-foreground text-sm">
           {cityName} - {state} | Kit: {kitPower} kWp | Gerado em{' '}
           {new Date().toLocaleDateString('pt-BR')}
@@ -135,13 +138,13 @@ export function EfficiencyDashboard() {
           color="text-chart-1"
         />
         <MetricCard
-          title="Geração Esperada Total"
+          title="Geração Projetada Total"
           value={report.total_estimated}
           icon={TrendingUp}
           color="text-chart-2"
         />
         <MetricCard
-          title="Delta (Real - Esp.)"
+          title="Delta (Real - Proj.)"
           value={totalDelta}
           icon={totalDelta >= 0 ? TrendingUp : TrendingDown}
           color={totalDelta >= 0 ? 'text-emerald-500' : 'text-destructive'}
@@ -158,31 +161,47 @@ export function EfficiencyDashboard() {
       <Card className="shadow-sm print:break-inside-avoid">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold text-muted-foreground">
-            Geração Real vs Esperada (kWh)
+            Geração Real vs Projetada (kWh)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig} className="h-[350px] w-full aspect-auto">
-            <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.5} />
-              <XAxis
+          <ChartContainer
+            config={chartConfig}
+            className="w-full aspect-auto"
+            style={{ height: `${chartHeight}px` }}
+          >
+            <BarChart
+              layout="vertical"
+              data={chartData}
+              margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+            >
+              <CartesianGrid
+                horizontal={false}
+                vertical={true}
+                strokeDasharray="3 3"
+                opacity={0.5}
+              />
+              <XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
+              <YAxis
+                type="category"
                 dataKey="month"
                 tickLine={false}
                 axisLine={false}
-                tickMargin={12}
+                tickMargin={8}
                 fontSize={12}
+                width={80}
               />
               <ChartTooltip
                 content={<ChartTooltipContent indicator="dot" />}
                 cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
               />
               <ChartLegend content={<ChartLegendContent />} className="mt-4" />
-              <Bar dataKey="real" fill="var(--color-real)" radius={[4, 4, 0, 0]} maxBarSize={50} />
+              <Bar dataKey="real" fill="var(--color-real)" radius={[0, 4, 4, 0]} maxBarSize={30} />
               <Bar
                 dataKey="estimated"
                 fill="var(--color-estimated)"
-                radius={[4, 4, 0, 0]}
-                maxBarSize={50}
+                radius={[0, 4, 4, 0]}
+                maxBarSize={30}
               />
             </BarChart>
           </ChartContainer>
@@ -190,9 +209,7 @@ export function EfficiencyDashboard() {
       </Card>
 
       <EfficiencyComparisonTable />
-
       <EfficiencyVerticalReport />
-
       <EfficiencySummary />
 
       <div className="hidden print:block mt-auto pt-8 border-t text-center text-sm font-bold">
