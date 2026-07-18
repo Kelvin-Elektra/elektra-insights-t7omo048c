@@ -32,6 +32,60 @@ export interface EfficiencyReport {
   adjusted_breakdown: { month: string; days: number; hsp: number; adjusted_generation: number }[]
   ideal_average: number
   efficiency_factor: number
+  summary: string
+}
+
+const generateSummary = (report: Omit<EfficiencyReport, 'summary'>): string => {
+  const {
+    avg_idm,
+    total_real,
+    total_estimated,
+    total_delta,
+    delta_percentage,
+    consumerName,
+    items,
+  } = report
+  const periodLabel =
+    items.length === 1
+      ? items[0].month_label
+      : `${items[items.length - 1].month_label} a ${items[0].month_label}`
+
+  const performanceLevel =
+    avg_idm >= 90
+      ? 'excelente'
+      : avg_idm >= 75
+        ? 'satisfatório'
+        : avg_idm >= 60
+          ? 'abaixo do esperado'
+          : 'crítico'
+
+  const deltaDirection = total_delta >= 0 ? 'superior' : 'inferior'
+  const absDelta = Math.abs(total_delta)
+
+  let summary = `O sistema fotovoltaico instalado para o cliente ${consumerName || 'não informado'}`
+  summary += ` foi analisado no período de ${periodLabel}.`
+  summary += ` O Índice de Desempenho Médio (IDM) atingido foi de ${avg_idm.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%,`
+  summary += ` classificado como desempenho ${performanceLevel}.`
+  summary += ` A geração real total foi de ${total_real.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kWh,`
+  summary += ` enquanto a geração esperada ajustada totalizou ${total_estimated.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kWh,`
+  summary += ` resultando em um delta ${deltaDirection} de ${absDelta.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} kWh`
+  summary += ` (${delta_percentage >= 0 ? '+' : ''}${delta_percentage.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%).`
+
+  if (avg_idm >= 90) {
+    summary +=
+      ' O sistema está operando dentro dos parâmetros ideais, indicando boa eficiência dos painéis e condições favoráveis de irradiação.'
+  } else if (avg_idm >= 75) {
+    summary +=
+      ' O sistema apresenta desempenho adequado, porém pode haver margem para otimização através de limpeza dos módulos ou revisão de conexões.'
+  } else if (avg_idm >= 60) {
+    summary +=
+      ' Recomenda-se investigar possíveis causas de subdesempenho, como sombreamento, sujidade nos painéis, ou falhas no inversor.'
+  } else {
+    summary +=
+      ' O desempenho crítico indica a necessidade de manutenção corretiva imediata. Sugere-se vistoria técnica detalhada dos módulos, inversores e cabeamento.'
+  }
+
+  return summary
 }
 
 const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
@@ -185,7 +239,9 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
       adjusted_breakdown,
       ideal_average: idealAverage,
       efficiency_factor: efficiencyFactor,
+      summary: '',
     }
+    reportData.summary = generateSummary(reportData)
     setReport(reportData)
 
     const firstEntry = draftEntries[0]

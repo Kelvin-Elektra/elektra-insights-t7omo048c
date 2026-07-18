@@ -12,6 +12,8 @@ import { BarChart, Bar, XAxis, CartesianGrid } from 'recharts'
 import { Gauge, Zap, TrendingUp, TrendingDown, Download, SunMedium, Percent } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EfficiencyComparisonTable } from '@/components/efficiency/EfficiencyComparisonTable'
+import { EfficiencyVerticalReport } from '@/components/efficiency/EfficiencyVerticalReport'
+import { EfficiencySummary } from '@/components/efficiency/EfficiencySummary'
 
 const chartConfig = {
   real: { label: 'Geração Real', color: 'hsl(var(--chart-1))' },
@@ -188,6 +190,10 @@ export function EfficiencyDashboard() {
       </Card>
 
       <EfficiencyComparisonTable />
+
+      <EfficiencyVerticalReport />
+
+      <EfficiencySummary />
 
       <div className="hidden print:block mt-auto pt-8 border-t text-center text-sm font-bold">
         <p>Produto por Elektra Engenharia & Soluções</p>
