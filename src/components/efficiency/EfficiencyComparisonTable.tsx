@@ -73,55 +73,6 @@ export function EfficiencyComparisonTable() {
           </div>
         </CardContent>
       </Card>
-
-      {report.items && report.items.length > 0 && (
-        <Card className="shadow-sm print:break-inside-avoid mt-6 border-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold text-primary">
-              Análise dos Meses Inseridos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Mês/Ano</TableHead>
-                    <TableHead className="text-right">HSP</TableHead>
-                    <TableHead className="text-right">Projetado (kWh)</TableHead>
-                    <TableHead className="text-right">Real (kWh)</TableHead>
-                    <TableHead className="text-right">Desempenho (%)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {report.items.map((item, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-medium">{item.month_label}</TableCell>
-                      <TableCell className="text-right text-muted-foreground">
-                        {item.hsp_value.toLocaleString('pt-BR', {
-                          minimumFractionDigits: 3,
-                          maximumFractionDigits: 3,
-                        })}
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-muted-foreground">
-                        {item.estimated.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {item.real_generation.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell
-                        className={`text-right font-semibold ${item.idm >= 100 ? 'text-emerald-500' : 'text-destructive'}`}
-                      >
-                        {item.idm.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

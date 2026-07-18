@@ -77,10 +77,12 @@ export function EfficiencyDashboard() {
             </div>
           </div>
         )}
-        <p className="text-muted-foreground text-sm">
-          {cityName} - {state} | Kit: {kitPower} kWp | Gerado em{' '}
-          {new Date().toLocaleDateString('pt-BR')}
-        </p>
+        <div className="flex justify-center gap-6 text-sm text-muted-foreground">
+          <span>
+            {cityName} - {state} | Kit: {kitPower} kWp
+          </span>
+          <span>Data de análise: {new Date().toLocaleDateString('pt-BR')}</span>
+        </div>
       </div>
 
       <div className="flex items-center justify-between print:hidden bg-muted/30 p-4 rounded-xl border">
@@ -88,13 +90,14 @@ export function EfficiencyDashboard() {
           <h2 className="text-lg font-semibold tracking-tight">Análise de Eficiência</h2>
           <p className="text-sm text-muted-foreground">
             {consumerName ? `${consumerName} • ` : ''}
-            {cityName} - {state} | Kit: {kitPower} kWp
+            {cityName} - {state} | Kit: {kitPower} kWp | Data de análise:{' '}
+            {new Date().toLocaleDateString('pt-BR')}
           </p>
         </div>
         <Button
           onClick={() => {
             const originalTitle = document.title
-            document.title = `Análise de eficiência - ${consumerName || 'Cliente'}`
+            document.title = `Análise energética - ${consumerName || 'Cliente'}`
             window.print()
             setTimeout(() => {
               document.title = originalTitle

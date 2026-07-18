@@ -223,9 +223,9 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
       }
     })
 
-    const avgIdm = items.length > 0 ? items.reduce((acc, i) => acc + i.idm, 0) / items.length : 0
     const totalReal = items.reduce((acc, i) => acc + i.real_generation, 0)
     const totalEstimated = items.reduce((acc, i) => acc + i.estimated, 0)
+    const avgIdm = totalEstimated > 0 ? (totalReal / totalEstimated) * 100 : 0
     const totalDelta = totalReal - totalEstimated
     const deltaPct = totalEstimated > 0 ? (totalDelta / totalEstimated) * 100 : 0
 
