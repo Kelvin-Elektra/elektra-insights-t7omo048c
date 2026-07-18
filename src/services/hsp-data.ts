@@ -54,5 +54,6 @@ export const getHspByCity = async (city: string, state: string): Promise<HspData
 
 export const normalizeHsp = (rawValue: number): number => {
   if (!rawValue || rawValue <= 0) return 0
+  if (rawValue > 100) return rawValue / 1000
   return rawValue
 }

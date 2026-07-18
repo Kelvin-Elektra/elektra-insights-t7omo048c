@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
-import { getHspByCity, type HspData } from '@/services/hsp-data'
+import { getHspByCity, normalizeHsp, type HspData } from '@/services/hsp-data'
 
 export interface EfficiencyEntry {
   id: string
@@ -183,7 +183,9 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
       setHspRecord(hspData)
     }
 
-    const monthlyHspValues = MONTH_KEYS.map((key) => Number((hspData as any)[key]) || 0)
+    const monthlyHspValues = MONTH_KEYS.map((key) =>
+      normalizeHsp(Number((hspData as any)[key]) || 0),
+    )
 
     const ideal_breakdown = monthlyHspValues.map((hsp, idx) => {
       const days = DAYS_IN_MONTH[idx]

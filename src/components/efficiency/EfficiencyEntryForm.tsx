@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useEffect, useState } from 'react'
-import { getStates, getCitiesByState, type HspData } from '@/services/hsp-data'
+import { getStates, getCitiesByState, normalizeHsp, type HspData } from '@/services/hsp-data'
 import { Combobox } from '@/components/ui/combobox'
 
 export interface EfficiencyEntryFormProps {
@@ -189,7 +189,7 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
             />
             {hspRecord && (
               <p className="text-xs text-muted-foreground">
-                HSP anual: {hspRecord.annual?.toFixed(2) || 'N/A'} kWh/m²/dia
+                HSP anual: {normalizeHsp(hspRecord.annual).toFixed(2)} kWh/m²/dia
               </p>
             )}
           </div>
