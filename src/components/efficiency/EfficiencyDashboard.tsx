@@ -91,7 +91,18 @@ export function EfficiencyDashboard() {
             {cityName} - {state} | Kit: {kitPower} kWp
           </p>
         </div>
-        <Button onClick={() => window.print()} className="shadow-sm hover:scale-105" size="sm">
+        <Button
+          onClick={() => {
+            const originalTitle = document.title
+            document.title = `Análise de eficiência - ${consumerName || 'Cliente'}`
+            window.print()
+            setTimeout(() => {
+              document.title = originalTitle
+            }, 500)
+          }}
+          className="shadow-sm hover:scale-105"
+          size="sm"
+        >
           <Download className="h-4 w-4 mr-2" /> Gerar PDF
         </Button>
       </div>
@@ -212,8 +223,9 @@ export function EfficiencyDashboard() {
       <EfficiencyVerticalReport />
       <EfficiencySummary />
 
-      <div className="hidden print:block mt-auto pt-8 border-t text-center text-sm font-bold">
-        <p>Produto por Elektra Engenharia & Soluções</p>
+      <div className="mt-auto pt-8 border-t text-center text-sm font-medium text-muted-foreground print:break-inside-avoid">
+        <p className="hidden print:block">Powered by Elektra Insights</p>
+        <p className="print:hidden text-xs">Powered by Elektra Insights</p>
       </div>
     </div>
   )

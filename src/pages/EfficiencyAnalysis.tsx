@@ -19,7 +19,7 @@ export default function EfficiencyAnalysis() {
   return (
     <div className="space-y-6 print:m-0 print:p-0 max-w-5xl mx-auto">
       <div className="flex justify-between items-center print:hidden border-b pb-4">
-        <h1 className="text-2xl font-bold tracking-tight">Analise de Eficiencia Energetica</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Análise de Eficiência Energética</h1>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="shadow-sm hover:border-primary/50">
