@@ -21,6 +21,8 @@ export interface EfficiencyEntryFormProps {
 
 export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
   const {
+    consumerName,
+    setConsumerName,
     cityName,
     state,
     setState,
@@ -119,6 +121,16 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
             &quot;hsp_data&quot;.
           </p>
         )}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">Nome do Cliente</Label>
+          <Input
+            type="text"
+            placeholder="Ex: João da Silva"
+            value={consumerName}
+            onChange={(e) => setConsumerName(e.target.value)}
+            className="h-9 text-sm"
+          />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-muted-foreground">Estado</Label>
@@ -268,7 +280,14 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
           className="w-full h-14 text-lg font-semibold hover:scale-[1.02] transition-transform shadow-md"
           size="lg"
           onClick={handleGenerateReport}
-          disabled={!cityName || !state || kitPower <= 0 || expectedAvgGeneration <= 0}
+          disabled={
+            !consumerName ||
+            !cityName ||
+            !state ||
+            kitPower <= 0 ||
+            expectedAvgGeneration <= 0 ||
+            draftEntries.length === 0
+          }
         >
           <Zap className="h-6 w-6 mr-2" /> Gerar Análise de Eficiência
         </Button>

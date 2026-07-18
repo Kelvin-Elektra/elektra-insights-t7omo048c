@@ -21,13 +21,20 @@ export interface EfficiencyReportItem {
 }
 
 export interface EfficiencyReport {
+  consumerName?: string
   items: EfficiencyReportItem[]
   avg_idm: number
   total_real: number
   total_estimated: number
   total_delta: number
   delta_percentage: number
+  ideal_breakdown: { month: string; days: number; hsp: number; ideal_generation: number }[]
+  adjusted_breakdown: { month: string; days: number; hsp: number; adjusted_generation: number }[]
+  ideal_average: number
+  efficiency_factor: number
 }
+
+const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
 const MONTH_LABELS = [
   'Jan',
@@ -59,6 +66,8 @@ const MONTH_KEYS = [
 ]
 
 interface EfficiencyContextType {
+  consumerName: string
+  setConsumerName: React.Dispatch<React.SetStateAction<string>>
   cityName: string
   setCityName: React.Dispatch<React.SetStateAction<string>>
   state: string
@@ -87,6 +96,7 @@ const getCurrentMonth = () => {
 }
 
 export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
+  const [consumerName, setConsumerName] = useState('')
   const [cityName, setCityName] = useState('')
   const [state, setState] = useState('')
   const [kitPower, setKitPower] = useState(0)
@@ -111,7 +121,7 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const generateReport = async () => {
-    if (!cityName || !state || kitPower <= 0 || expectedAvgGeneration <= 0) return
+    if (!consumerName || !cityName || !state || kitPower <= 0 || expectedAvgGeneration <= 0) return
 
     let hspData: HspData | null = hspRecord
     if (!hspData) {
@@ -120,20 +130,37 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const monthlyHspValues = MONTH_KEYS.map((key) => Number((hspData as any)[key]) || 0)
-    const totalHsp = monthlyHspValues.reduce((sum, val) => sum + val, 0)
-    const annualExpected = expectedAvgGeneration * 12
+
+    const ideal_breakdown = monthlyHspValues.map((hsp, idx) => {
+      const days = DAYS_IN_MONTH[idx]
+      const ideal_generation = days * hsp * kitPower
+      return {
+        month: MONTH_LABELS[idx],
+        days,
+        hsp,
+        ideal_generation,
+      }
+    })
+
+    const idealAverage = ideal_breakdown.reduce((sum, item) => sum + item.ideal_generation, 0) / 12
+    const efficiencyFactor = idealAverage > 0 ? expectedAvgGeneration / idealAverage : 0
+
+    const adjusted_breakdown = ideal_breakdown.map((item) => ({
+      month: item.month,
+      days: item.days,
+      hsp: item.hsp,
+      adjusted_generation: item.ideal_generation * efficiencyFactor,
+    }))
 
     const items: EfficiencyReportItem[] = draftEntries.map((entry) => {
       const monthIdx = parseInt(entry.month) - 1
-      const monthKey = MONTH_KEYS[monthIdx]
-      const monthHsp = Number((hspData as any)[monthKey]) || 0
-      const monthlyWeight = totalHsp > 0 ? monthHsp / totalHsp : 0
-      const estimated = annualExpected * monthlyWeight
+      const monthHsp = monthlyHspValues[monthIdx]
+      const estimated = adjusted_breakdown[monthIdx].adjusted_generation
       const idm = estimated > 0 ? (entry.real_generation / estimated) * 100 : 0
       return {
         ...entry,
         hsp_value: monthHsp,
-        monthly_weight: monthlyWeight,
+        monthly_weight: 0,
         estimated,
         idm,
         month_label: `${MONTH_LABELS[monthIdx] || ''}/${entry.year.slice(-2)}`,
@@ -147,12 +174,17 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
     const deltaPct = totalEstimated > 0 ? (totalDelta / totalEstimated) * 100 : 0
 
     const reportData: EfficiencyReport = {
+      consumerName,
       items,
       avg_idm: avgIdm,
       total_real: totalReal,
       total_estimated: totalEstimated,
       total_delta: totalDelta,
       delta_percentage: deltaPct,
+      ideal_breakdown,
+      adjusted_breakdown,
+      ideal_average: idealAverage,
+      efficiency_factor: efficiencyFactor,
     }
     setReport(reportData)
 
@@ -184,6 +216,7 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
 
   const loadAnalysis = (record: any) => {
     setCurrentAnalysisId(record.id)
+    setConsumerName(record.report_data?.consumerName || '')
     setCityName(record.city_name || '')
     setState(record.state || '')
     setKitPower(record.kit_power || 0)
@@ -205,6 +238,7 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
 
   const reset = () => {
     setCurrentAnalysisId(null)
+    setConsumerName('')
     setCityName('')
     setState('')
     setKitPower(0)
@@ -218,6 +252,8 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
   return (
     <EfficiencyContext.Provider
       value={{
+        consumerName,
+        setConsumerName,
         cityName,
         setCityName,
         state,

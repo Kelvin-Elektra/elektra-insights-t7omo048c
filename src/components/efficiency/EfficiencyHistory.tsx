@@ -81,6 +81,7 @@ export function EfficiencyHistory() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Data</TableHead>
+                  <TableHead>Cliente</TableHead>
                   <TableHead>Cidade/Estado</TableHead>
                   <TableHead>Kit (kWp)</TableHead>
                   <TableHead className="text-right">IDM</TableHead>
@@ -99,6 +100,7 @@ export function EfficiencyHistory() {
                       <TableCell className="font-medium whitespace-nowrap">
                         {format(new Date(a.created), 'dd/MM/yyyy HH:mm')}
                       </TableCell>
+                      <TableCell className="font-medium">{rd?.consumerName || '-'}</TableCell>
                       <TableCell>
                         {a.city_name || 'N/A'} - {a.state || ''}
                       </TableCell>

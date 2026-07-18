@@ -19,7 +19,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export function EfficiencyDashboard() {
-  const { report, cityName, state, kitPower } = useEfficiency()
+  const { report, consumerName, cityName, state, kitPower } = useEfficiency()
 
   if (!report || report.items.length === 0) {
     return (
@@ -64,6 +64,14 @@ export function EfficiencyDashboard() {
           <SunMedium className="h-10 w-10 text-primary" />
           <h1 className="text-3xl font-bold tracking-tight">Análise de Eficiência Energética</h1>
         </div>
+        {consumerName && (
+          <div className="flex justify-center items-center gap-6 text-base font-medium mb-4 bg-muted/20 py-2 rounded-lg inline-flex px-8">
+            <div>
+              <span className="text-muted-foreground font-normal">Cliente:</span> {consumerName}
+            </div>
+          </div>
+        )}
+
         <p className="text-muted-foreground text-sm">
           {cityName} - {state} | Kit: {kitPower} kWp | Gerado em{' '}
           {new Date().toLocaleDateString('pt-BR')}
@@ -74,6 +82,7 @@ export function EfficiencyDashboard() {
         <div className="space-y-1">
           <h2 className="text-lg font-semibold tracking-tight">Análise de Eficiência</h2>
           <p className="text-sm text-muted-foreground">
+            {consumerName ? `${consumerName} • ` : ''}
             {cityName} - {state} | Kit: {kitPower} kWp
           </p>
         </div>
