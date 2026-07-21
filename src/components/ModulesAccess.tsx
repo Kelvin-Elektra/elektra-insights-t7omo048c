@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useNavigate } from 'react-router-dom'
-import { FileBarChart2, SunMedium, Gauge } from 'lucide-react'
+import { FileBarChart2, SunMedium, Gauge, BatteryCharging } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { DataEntryForm } from '@/components/solar/DataEntryForm'
 import { EfficiencyEntryForm } from '@/components/efficiency/EfficiencyEntryForm'
+import { HybridEntryForm } from '@/components/hybrid/HybridEntryForm'
 import { useAuth } from '@/hooks/use-auth'
 import { useState } from 'react'
 import { Label } from '@/components/ui/label'
@@ -20,6 +21,7 @@ import { Input } from '@/components/ui/input'
 export default function ModulesAccess() {
   const [isOpen, setIsOpen] = useState(false)
   const [efficiencyOpen, setEfficiencyOpen] = useState(false)
+  const [hybridOpen, setHybridOpen] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuth()
 
@@ -101,6 +103,45 @@ export default function ModulesAccess() {
               onSuccess={() => {
                 setEfficiencyOpen(false)
                 navigate('/efficiency-analysis')
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 mt-8">
+        <Dialog open={hybridOpen} onOpenChange={setHybridOpen}>
+          <DialogTrigger asChild>
+            <Card className="hover:shadow-lg transition-all border-primary/30 cursor-pointer group p-4 border-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-2xl group-hover:text-primary transition-colors">
+                  <BatteryCharging className="h-8 w-8 text-primary shrink-0" />
+                  Análise de Sistema Híbrido
+                </CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Dimensione baterias e inversor para cargas críticas com base em premissas técnicas
+                  de sistemas 48V.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full sm:w-auto hover:scale-[1.02] transition-transform text-lg py-6 px-8 shadow-md">
+                  <BatteryCharging className="mr-2 h-5 w-5" />
+                  Iniciar Análise Híbrida
+                </Button>
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="mb-4 border-b pb-4">
+              <DialogTitle className="text-2xl">Dimensionamento de Sistema Híbrido</DialogTitle>
+              <DialogDescription className="text-base">
+                Insira os dados do cliente e as cargas críticas para gerar o dimensionamento.
+              </DialogDescription>
+            </DialogHeader>
+            <HybridEntryForm
+              onSuccess={() => {
+                setHybridOpen(false)
+                navigate('/hybrid-analysis')
               }}
             />
           </DialogContent>
