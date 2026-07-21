@@ -64,8 +64,8 @@ export function HybridEntryForm({ onSuccess }: HybridEntryFormProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="100Ah">100Ah — 4.320 Wh útil</SelectItem>
-              <SelectItem value="200Ah">200Ah — 8.640 Wh útil</SelectItem>
+              <SelectItem value="100Ah">100Ah — 4,32 kWh útil</SelectItem>
+              <SelectItem value="200Ah">200Ah — 8,64 kWh útil</SelectItem>
             </SelectContent>
           </Select>
         </div>

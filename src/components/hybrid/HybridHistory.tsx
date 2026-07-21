@@ -80,7 +80,7 @@ export function HybridHistory() {
                   <TableHead>Data</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Bateria</TableHead>
-                  <TableHead className="text-right">Inversor (W)</TableHead>
+                  <TableHead className="text-right">Inversor (kW)</TableHead>
                   <TableHead className="text-right">Baterias</TableHead>
                   <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
@@ -99,7 +99,9 @@ export function HybridHistory() {
                       <TableCell className="font-medium">{a.customer_name || '-'}</TableCell>
                       <TableCell>{a.battery_type || 'N/A'}</TableCell>
                       <TableCell className="text-right font-semibold">
-                        {rd?.inverter_power?.toLocaleString('pt-BR') || '-'}
+                        {rd?.inverter_power
+                          ? `${rd.inverter_power.toLocaleString('pt-BR')} kW`
+                          : '-'}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
                         {rd?.battery_qty?.toLocaleString('pt-BR') || '-'}

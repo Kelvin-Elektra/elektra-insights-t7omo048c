@@ -31,7 +31,7 @@ export const getUsefulCapacity = (batteryType: BatteryType): number => {
 export const calculateResults = (loads: HybridLoad[], batteryType: BatteryType): HybridResults => {
   const total_power = loads.reduce((sum, l) => sum + l.power, 0)
   const total_energy = loads.reduce((sum, l) => sum + l.power * l.hours, 0)
-  const inverter_power = Math.ceil(total_power)
+  const inverter_power = Math.ceil(total_power / 1000)
   const useful_capacity = getUsefulCapacity(batteryType)
   const battery_qty = Math.ceil(total_energy / useful_capacity)
   return { total_power, total_energy, inverter_power, battery_qty, useful_capacity }

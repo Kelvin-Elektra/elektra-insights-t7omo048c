@@ -33,15 +33,15 @@ export function HybridDashboard() {
     <div className="space-y-6 animate-fade-in-up print:m-0 max-w-5xl mx-auto">
       <style>{`
         @media print {
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; padding: 15mm; }
-          @page { margin: 0; size: A4 portrait; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white; }
+          @page { margin: 12mm; size: A4 portrait; }
         }
       `}</style>
 
       <div className="hidden print:block text-center border-b pb-6 mb-6">
         <div className="flex items-center justify-center gap-3 mb-4">
           <SunMedium className="h-10 w-10 text-primary" />
-          <h1 className="text-3xl font-bold tracking-tight">Dimensionamento de Sistema Híbrido</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Análise de Sistema Híbrido</h1>
         </div>
         {customerName && (
           <div className="flex justify-center items-center gap-6 text-base font-medium mb-4 bg-muted/20 py-2 rounded-lg inline-flex px-8">
@@ -99,7 +99,7 @@ export function HybridDashboard() {
         <MetricCard
           title="Inversor Mínimo"
           value={results.inverter_power}
-          suffix=" W"
+          suffix=" kW"
           icon={Zap}
           color="text-primary"
         />
@@ -170,19 +170,19 @@ export function HybridDashboard() {
         <CardContent>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <PremiseChip label="Tensão do Sistema" value="48V" />
-            <PremiseChip label="Bateria" value="Lítio" />
+            <PremiseChip label="Tecnologia" value="Li-ion" />
             <PremiseChip label="DoD" value="90%" />
             <PremiseChip label="Eficiência" value="100%" />
             <PremiseChip
               label="Capacidade Útil"
-              value={`${results.useful_capacity.toLocaleString('pt-BR')} Wh`}
+              value={`${(results.useful_capacity / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} kWh`}
             />
           </div>
           <div className="mt-4 space-y-1 text-sm text-muted-foreground">
             <p>
-              <strong>Potência do Inversor:</strong> Soma das potências de todas as cargas,
-              arredondada para cima ({results.total_power.toLocaleString('pt-BR')} W →{' '}
-              {results.inverter_power.toLocaleString('pt-BR')} W).
+              <strong>Potência do Inversor:</strong> Soma das potências de todas as cargas (
+              {results.total_power.toLocaleString('pt-BR')} W), convertida para kW e arredondada
+              para cima → {results.inverter_power.toLocaleString('pt-BR')} kW.
             </p>
             <p>
               <strong>Energia Total:</strong> Soma de (Potência × Horas) de cada carga ={' '}
@@ -190,8 +190,8 @@ export function HybridDashboard() {
             </p>
             <p>
               <strong>Quantidade de Baterias:</strong> Energia Total ÷ Capacidade Útil ={' '}
-              {results.total_energy.toLocaleString('pt-BR')} ÷{' '}
-              {results.useful_capacity.toLocaleString('pt-BR')} ={' '}
+              {results.total_energy.toLocaleString('pt-BR')} Wh ÷{' '}
+              {results.useful_capacity.toLocaleString('pt-BR')} Wh ={' '}
               {results.battery_qty.toLocaleString('pt-BR')} unidade(s).
             </p>
           </div>
