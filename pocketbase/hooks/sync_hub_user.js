@@ -15,7 +15,12 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
   }
 
   let companyRecord = null
-  const companyHubId = companyPayload.id || userPayload.company_id || ''
+  const companyHubId =
+    companyPayload.hub_company_id ||
+    userPayload.company_id ||
+    userPayload.hub_company_id ||
+    companyPayload.id ||
+    ''
   const companyName =
     companyPayload.name ||
     userPayload.company_name ||
@@ -32,7 +37,11 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
       companyRecord.set('status', companyPayload.status || 'active')
     }
 
-    if (companyPayload.name !== undefined) companyRecord.set('name', companyPayload.name)
+    if (companyPayload.name !== undefined && companyPayload.name !== '') {
+      companyRecord.set('name', companyPayload.name)
+    } else if (userPayload.company_name !== undefined && userPayload.company_name !== '') {
+      companyRecord.set('name', userPayload.company_name)
+    }
     if (companyPayload.status !== undefined) companyRecord.set('status', companyPayload.status)
 
     try {
@@ -90,15 +99,23 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
   if (userPayload.name !== undefined) userRecord.set('name', userPayload.name)
   if (userPayload.role !== undefined) userRecord.set('role', userPayload.role)
 
-  if (userPayload.company_id !== undefined) {
-    userRecord.set('hub_company_id', userPayload.company_id)
+  const effectiveHubCompanyId =
+    companyHubId || (companyRecord ? companyRecord.getString('hub_company_id') : '')
+  if (effectiveHubCompanyId) {
+    userRecord.set('hub_company_id', effectiveHubCompanyId)
   }
 
-  if (userPayload.company_name !== undefined) {
+  if (companyRecord) {
+    const resolvedCompName =
+      companyPayload.name ||
+      userPayload.company_name ||
+      companyRecord.getString('name') ||
+      companyName
+    userRecord.set('company_name', resolvedCompName)
+  } else if (userPayload.company_name !== undefined) {
     userRecord.set('company_name', userPayload.company_name)
-  } else if (companyRecord) {
-    userRecord.set('company_name', companyRecord.getString('name'))
   }
+
   if (userPayload.phone !== undefined) userRecord.set('phone', userPayload.phone)
   if (body.role_company !== undefined) userRecord.set('role_company', body.role_company)
 

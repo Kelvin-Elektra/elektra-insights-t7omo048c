@@ -26,23 +26,35 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
   }
 
   // 1. Sync Company
+  const companyPayload =
+    payload.company && typeof payload.company === 'object' ? payload.company : null
+  const companyHubId =
+    (companyPayload && companyPayload.hub_company_id) ||
+    payload.hub_company_id ||
+    payload.company_id ||
+    (companyPayload && companyPayload.id) ||
+    ''
+
+  const companyNameFromPayload =
+    (companyPayload && companyPayload.name) || payload.company_name || ''
+
+  const fallbackCompanyName =
+    companyNameFromPayload || (payload.name ? `Empresa de ${payload.name}` : 'Empresa')
+
   let companyRecord = null
-  const companyHubId = payload.company_id || ''
-  const companyName =
-    payload.company_name || (payload.name ? `Empresa de ${payload.name}` : 'Empresa')
 
   if (companyHubId) {
     try {
       companyRecord = $app.findFirstRecordByData('companies', 'hub_company_id', companyHubId)
-      if (payload.company_name && companyRecord.getString('name') !== payload.company_name) {
-        companyRecord.set('name', payload.company_name)
+      if (companyNameFromPayload && companyRecord.getString('name') !== companyNameFromPayload) {
+        companyRecord.set('name', companyNameFromPayload)
         $app.saveNoValidate(companyRecord)
       }
     } catch (_) {
       try {
         const companiesCol = $app.findCollectionByNameOrId('companies')
         companyRecord = new Record(companiesCol)
-        companyRecord.set('name', companyName)
+        companyRecord.set('name', fallbackCompanyName)
         companyRecord.set('hub_company_id', companyHubId)
         companyRecord.set('status', 'active')
         $app.saveNoValidate(companyRecord)
@@ -78,7 +90,7 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
       try {
         const companiesCol = $app.findCollectionByNameOrId('companies')
         companyRecord = new Record(companiesCol)
-        companyRecord.set('name', companyName)
+        companyRecord.set('name', fallbackCompanyName)
         companyRecord.set('status', 'active')
         $app.saveNoValidate(companyRecord)
         $app
@@ -106,6 +118,14 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
 
   const usersCol = $app.findCollectionByNameOrId('users')
 
+  const effectiveHubCompanyId =
+    companyHubId || (companyRecord ? companyRecord.getString('hub_company_id') : '')
+
+  const resolvedCompanyName =
+    companyNameFromPayload ||
+    (companyRecord ? companyRecord.getString('name') : '') ||
+    fallbackCompanyName
+
   if (userRecord) {
     // Update existing user
     if (email) userRecord.setEmail(email)
@@ -114,13 +134,13 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
     if (payload.role) userRecord.set('role', payload.role)
     if (payload.role_company) userRecord.set('role_company', payload.role_company)
     if (userId) userRecord.set('hub_user_id', userId)
-    if (payload.company_id) userRecord.set('hub_company_id', payload.company_id)
+    if (effectiveHubCompanyId) userRecord.set('hub_company_id', effectiveHubCompanyId)
     if (companyRecord) {
       userRecord.set('company', companyRecord.id)
       userRecord.set('company_id', companyRecord.id)
-      if (!userRecord.getString('company_name')) {
-        userRecord.set('company_name', companyRecord.getString('name'))
-      }
+      userRecord.set('company_name', resolvedCompanyName)
+    } else if (companyNameFromPayload) {
+      userRecord.set('company_name', companyNameFromPayload)
     }
 
     try {
@@ -147,11 +167,13 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
     userRecord.set('role', payload.role || 'User_employee')
     userRecord.set('role_company', payload.role_company || 'user')
     if (userId) userRecord.set('hub_user_id', userId)
-    if (payload.company_id) userRecord.set('hub_company_id', payload.company_id)
+    if (effectiveHubCompanyId) userRecord.set('hub_company_id', effectiveHubCompanyId)
     if (companyRecord) {
       userRecord.set('company', companyRecord.id)
       userRecord.set('company_id', companyRecord.id)
-      userRecord.set('company_name', companyRecord.getString('name'))
+      userRecord.set('company_name', resolvedCompanyName)
+    } else if (companyNameFromPayload) {
+      userRecord.set('company_name', companyNameFromPayload)
     }
 
     try {
