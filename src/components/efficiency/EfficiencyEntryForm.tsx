@@ -24,6 +24,7 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
     consumerName,
     setConsumerName,
     cityName,
+    setCityName,
     state,
     setState,
     kitPower,
@@ -94,16 +95,18 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
   const updateRow = (id: string, field: keyof EfficiencyEntry, value: string | number) =>
     setDraftEntries(draftEntries.map((e) => (e.id === id ? { ...e, [field]: value } : e)))
 
-  const stateOptions = states.map((s) => ({ value: s, label: s }))
-  const cityOptions = cityRecords.map((c) => ({ value: c.city, label: c.city }))
-
   const handleCitySelect = (city: string) => {
     if (!city) {
       clearLocation()
       return
     }
     const record = cityRecords.find((r) => r.city === city)
-    if (record) selectLocation(record)
+    if (record) {
+      selectLocation(record)
+    } else {
+      // Fallback if not found in list for any reason
+      setCityName(city)
+    }
   }
 
   return (
@@ -134,29 +137,56 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-muted-foreground">Estado</Label>
-            <Combobox
-              options={stateOptions}
+            <Select
               value={state}
-              onChange={(v) => {
-                setState(v)
+              onValueChange={(val) => {
+                setState(val)
                 clearLocation()
               }}
-              placeholder="Buscar estado..."
-              searchPlaceholder="Digite a UF (ex: SP)..."
-              emptyMessage="Estado não encontrado na base de dados HSP"
-            />
+              disabled={loadingStates || states.length === 0}
+            >
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue
+                  placeholder={loadingStates ? 'Carregando estados...' : 'Selecione o estado (UF)'}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {states.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-muted-foreground">Cidade</Label>
-            <Combobox
-              options={cityOptions}
+            <Select
               value={cityName}
-              onChange={handleCitySelect}
-              placeholder="Buscar cidade..."
-              searchPlaceholder="Digite o nome da cidade..."
-              emptyMessage="Localidade não encontrada na base de dados HSP"
-              disabled={!state || loadingCities}
-            />
+              onValueChange={handleCitySelect}
+              disabled={!state || loadingCities || cityRecords.length === 0}
+            >
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue
+                  placeholder={
+                    !state
+                      ? 'Selecione o estado primeiro'
+                      : loadingCities
+                        ? 'Carregando cidades...'
+                        : cityRecords.length === 0
+                          ? 'Nenhuma cidade encontrada'
+                          : 'Selecione a cidade'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {cityRecords.map((c) => (
+                  <SelectItem key={c.id || `${c.state}-${c.city}`} value={c.city}>
+                    {c.city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

@@ -27,25 +27,65 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
 
   // 1. Sync Company
   let companyRecord = null
-  if (payload.company_id) {
+  const companyHubId = payload.company_id || ''
+  const companyName =
+    payload.company_name || (payload.name ? `Empresa de ${payload.name}` : 'Empresa')
+
+  if (companyHubId) {
     try {
-      companyRecord = $app.findFirstRecordByData('companies', 'hub_company_id', payload.company_id)
-      if (companyRecord.getString('name') !== payload.company_name) {
-        companyRecord.set('name', payload.company_name || 'Empresa Sem Nome')
+      companyRecord = $app.findFirstRecordByData('companies', 'hub_company_id', companyHubId)
+      if (payload.company_name && companyRecord.getString('name') !== payload.company_name) {
+        companyRecord.set('name', payload.company_name)
         $app.saveNoValidate(companyRecord)
       }
     } catch (_) {
       try {
         const companiesCol = $app.findCollectionByNameOrId('companies')
         companyRecord = new Record(companiesCol)
-        companyRecord.set('name', payload.company_name || 'Empresa Sem Nome')
-        companyRecord.set('hub_company_id', payload.company_id)
+        companyRecord.set('name', companyName)
+        companyRecord.set('hub_company_id', companyHubId)
         companyRecord.set('status', 'active')
         $app.saveNoValidate(companyRecord)
         $app.logger().info('SSO Company Sync', 'status', 'created', 'companyId', companyRecord.id)
       } catch (err) {
         $app.logger().error('SSO Company Sync', 'status', 'failed', 'error', err.message)
         return e.internalServerError('failed to sync company data')
+      }
+    }
+  } else {
+    // If no company_id in token, check if user already has a linked company or create a default company so they're never orphaned
+    try {
+      let existingUser = null
+      if (userId) {
+        try {
+          existingUser = $app.findFirstRecordByData('users', 'hub_user_id', userId)
+        } catch (_) {}
+      }
+      if (!existingUser && email) {
+        try {
+          existingUser = $app.findAuthRecordByEmail('users', email)
+        } catch (_) {}
+      }
+
+      if (existingUser && existingUser.getString('company')) {
+        try {
+          companyRecord = $app.findRecordById('companies', existingUser.getString('company'))
+        } catch (_) {}
+      }
+    } catch (_) {}
+
+    if (!companyRecord) {
+      try {
+        const companiesCol = $app.findCollectionByNameOrId('companies')
+        companyRecord = new Record(companiesCol)
+        companyRecord.set('name', companyName)
+        companyRecord.set('status', 'active')
+        $app.saveNoValidate(companyRecord)
+        $app
+          .logger()
+          .info('SSO Default Company Sync', 'status', 'created', 'companyId', companyRecord.id)
+      } catch (err) {
+        $app.logger().error('SSO Default Company Sync', 'status', 'failed', 'error', err.message)
       }
     }
   }
@@ -75,7 +115,13 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
     if (payload.role_company) userRecord.set('role_company', payload.role_company)
     if (userId) userRecord.set('hub_user_id', userId)
     if (payload.company_id) userRecord.set('hub_company_id', payload.company_id)
-    if (companyRecord) userRecord.set('company', companyRecord.id)
+    if (companyRecord) {
+      userRecord.set('company', companyRecord.id)
+      userRecord.set('company_id', companyRecord.id)
+      if (!userRecord.getString('company_name')) {
+        userRecord.set('company_name', companyRecord.getString('name'))
+      }
+    }
 
     try {
       $app.saveNoValidate(userRecord)
@@ -102,7 +148,11 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
     userRecord.set('role_company', payload.role_company || 'user')
     if (userId) userRecord.set('hub_user_id', userId)
     if (payload.company_id) userRecord.set('hub_company_id', payload.company_id)
-    if (companyRecord) userRecord.set('company', companyRecord.id)
+    if (companyRecord) {
+      userRecord.set('company', companyRecord.id)
+      userRecord.set('company_id', companyRecord.id)
+      userRecord.set('company_name', companyRecord.getString('name'))
+    }
 
     try {
       $app.saveNoValidate(userRecord)

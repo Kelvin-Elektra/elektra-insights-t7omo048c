@@ -15,13 +15,21 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
   }
 
   let companyRecord = null
-  if (companyPayload.id) {
+  const companyHubId = companyPayload.id || userPayload.company_id || ''
+  const companyName =
+    companyPayload.name ||
+    userPayload.company_name ||
+    (userPayload.name ? `Empresa de ${userPayload.name}` : 'Empresa')
+
+  if (companyHubId) {
     try {
-      companyRecord = $app.findFirstRecordByData('companies', 'hub_company_id', companyPayload.id)
+      companyRecord = $app.findFirstRecordByData('companies', 'hub_company_id', companyHubId)
     } catch (_) {
       const compCol = $app.findCollectionByNameOrId('companies')
       companyRecord = new Record(compCol)
-      companyRecord.set('hub_company_id', companyPayload.id)
+      companyRecord.set('hub_company_id', companyHubId)
+      companyRecord.set('name', companyName)
+      companyRecord.set('status', companyPayload.status || 'active')
     }
 
     if (companyPayload.name !== undefined) companyRecord.set('name', companyPayload.name)
@@ -31,6 +39,34 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
       $app.save(companyRecord)
     } catch (err) {
       return e.badRequestError('Failed to save company: ' + err.message)
+    }
+  } else {
+    // If no hub company id was provided, check if user already has a company or create a default company so the user is never orphaned
+    try {
+      let existingUser = null
+      try {
+        existingUser = $app.findFirstRecordByData('users', 'hub_user_id', userPayload.id)
+      } catch (_) {
+        existingUser = $app.findAuthRecordByEmail('users', userPayload.email)
+      }
+
+      if (existingUser && existingUser.getString('company')) {
+        try {
+          companyRecord = $app.findRecordById('companies', existingUser.getString('company'))
+        } catch (_) {}
+      }
+    } catch (_) {}
+
+    if (!companyRecord) {
+      try {
+        const compCol = $app.findCollectionByNameOrId('companies')
+        companyRecord = new Record(compCol)
+        companyRecord.set('name', companyName)
+        companyRecord.set('status', 'active')
+        $app.save(companyRecord)
+      } catch (err) {
+        return e.badRequestError('Failed to create default company: ' + err.message)
+      }
     }
   }
 
@@ -60,6 +96,8 @@ routerAdd('POST', '/backend/v1/sync-hub-user', (e) => {
 
   if (userPayload.company_name !== undefined) {
     userRecord.set('company_name', userPayload.company_name)
+  } else if (companyRecord) {
+    userRecord.set('company_name', companyRecord.getString('name'))
   }
   if (userPayload.phone !== undefined) userRecord.set('phone', userPayload.phone)
   if (body.role_company !== undefined) userRecord.set('role_company', body.role_company)

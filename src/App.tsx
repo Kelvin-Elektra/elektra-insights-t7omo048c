@@ -18,6 +18,7 @@ import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import AccessDenied from './pages/AccessDenied'
 import Index from './pages/Index'
+import ManualLogin from './pages/ManualLogin'
 import ElektraAdminLogin from './pages/ElektraAdminLogin'
 import HspLookup from './pages/HspLookup'
 import { AuthProvider, useAuth } from './hooks/use-auth'
@@ -73,12 +74,13 @@ const App = () => (
       <SolarProvider>
         <EfficiencyProvider>
           <HybridProvider>
-            <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+            <BrowserRouter>
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
                 <Routes>
                   <Route path="/login" element={<Index />} />
+                  <Route path="/manual-login" element={<ManualLogin />} />
                   <Route path="/elektra-admin" element={<ElektraAdminLogin />} />
                   <Route
                     element={
