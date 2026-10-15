@@ -2,6 +2,9 @@ import { Outlet, Link, useLocation } from 'react-router-dom'
 import { PlusCircle, Zap, LogOut, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSolar } from '@/stores/solar-context'
+import { useEfficiency } from '@/stores/efficiency-context'
+import { useEnergy } from '@/stores/energy-context'
+import { useHybrid } from '@/stores/hybrid-context'
 import { useAuth } from '@/hooks/use-auth'
 import { useEffect, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
@@ -9,9 +12,29 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/co
 import { cn } from '@/lib/utils'
 
 export default function Layout() {
-  const { reset } = useSolar()
+  const { reset: resetSolar } = useSolar()
+  const { reset: resetEfficiency } = useEfficiency()
+  const { reset: resetEnergy } = useEnergy()
+  const { reset: resetHybrid } = useHybrid()
   const { user, logout } = useAuth()
   const location = useLocation()
+
+  const handleNewReport = () => {
+    if (location.pathname === '/uc-analysis') {
+      resetSolar()
+    } else if (location.pathname === '/efficiency-analysis') {
+      resetEfficiency()
+    } else if (location.pathname === '/energy-analysis') {
+      resetEnergy()
+    } else if (location.pathname === '/hybrid-analysis') {
+      resetHybrid()
+    } else {
+      resetSolar()
+      resetEfficiency()
+      resetEnergy()
+      resetHybrid()
+    }
+  }
 
   const [company, setCompany] = useState<any>(null)
   const [systemCompany, setSystemCompany] = useState<any>(null)
@@ -115,7 +138,7 @@ export default function Layout() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={reset}
+                onClick={handleNewReport}
                 className="hover:scale-[1.02] transition-transform shadow-sm hidden sm:flex"
               >
                 <PlusCircle className="h-4 w-4 mr-2" />

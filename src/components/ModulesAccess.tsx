@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useNavigate } from 'react-router-dom'
-import { FileBarChart2, SunMedium, Gauge, BatteryCharging } from 'lucide-react'
+import { FileBarChart2, SunMedium, Gauge, BatteryCharging, Zap } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -13,15 +13,15 @@ import {
 import { DataEntryForm } from '@/components/solar/DataEntryForm'
 import { EfficiencyEntryForm } from '@/components/efficiency/EfficiencyEntryForm'
 import { HybridEntryForm } from '@/components/hybrid/HybridEntryForm'
+import { EnergyEntryForm } from '@/components/energy/EnergyEntryForm'
 import { useAuth } from '@/hooks/use-auth'
 import { useState } from 'react'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 
 export default function ModulesAccess() {
   const [isOpen, setIsOpen] = useState(false)
   const [efficiencyOpen, setEfficiencyOpen] = useState(false)
   const [hybridOpen, setHybridOpen] = useState(false)
+  const [energyOpen, setEnergyOpen] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuth()
 
@@ -110,6 +110,47 @@ export default function ModulesAccess() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 mt-8">
+        {/* NOVO MÓDULO: Relatório Consumo x Injetada x Geração */}
+        <Dialog open={energyOpen} onOpenChange={setEnergyOpen}>
+          <DialogTrigger asChild>
+            <Card className="hover:shadow-lg transition-all border-primary/40 cursor-pointer group p-4 border-2 bg-gradient-to-br from-primary/5 via-card to-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-2xl group-hover:text-primary transition-colors">
+                  <Zap className="h-8 w-8 text-primary shrink-0" />
+                  Balanço Energético & Geração
+                </CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Cruze consumo histórico, energia injetada e geração do período em um único
+                  relatório, com opção de análise de eficiência solar ou geração declarada.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full sm:w-auto hover:scale-[1.02] transition-transform text-lg py-6 px-8 shadow-md">
+                  <Zap className="mr-2 h-5 w-5" />
+                  Iniciar Balanço & Geração
+                </Button>
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="mb-4 border-b pb-4">
+              <DialogTitle className="text-2xl">
+                Relatório de Balanço Energético & Geração
+              </DialogTitle>
+              <DialogDescription className="text-base">
+                Insira os dados de consumo, energia injetada e geração para gerar o relatório
+                integrado.
+              </DialogDescription>
+            </DialogHeader>
+            <EnergyEntryForm
+              onSuccess={() => {
+                setEnergyOpen(false)
+                navigate('/energy-analysis')
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={hybridOpen} onOpenChange={setHybridOpen}>
           <DialogTrigger asChild>
             <Card className="hover:shadow-lg transition-all border-primary/30 cursor-pointer group p-4 border-2">

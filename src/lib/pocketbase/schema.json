@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-01T12:22:28.128Z",
+  "generatedAt": "2026-10-15T15:02:41.855Z",
   "collections": [
     {
       "name": "users",
@@ -488,6 +488,99 @@
       "indexes": [
         "CREATE INDEX idx_hybrid_analyses_company ON hybrid_analyses (company)",
         "CREATE INDEX idx_hybrid_analyses_user ON hybrid_analyses (user)"
+      ]
+    },
+    {
+      "name": "energy_analyses",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (company = @request.auth.company || @request.auth.role = 'User_elektra')",
+        "view": "@request.auth.id != '' && (company = @request.auth.company || @request.auth.role = 'User_elektra')",
+        "create": "@request.auth.id != '' && company = @request.auth.company",
+        "update": "@request.auth.id != '' && company = @request.auth.company",
+        "delete": "@request.auth.id != '' && company = @request.auth.company"
+      },
+      "fields": [
+        {
+          "name": "company",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "companies"
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "consumer_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "uc_number",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "city_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "state",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "kit_power",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "expected_avg_generation",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mode",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "inputs",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_energy_analyses_company ON energy_analyses (company)",
+        "CREATE INDEX idx_energy_analyses_user ON energy_analyses (user)"
       ]
     }
   ]
