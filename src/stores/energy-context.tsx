@@ -6,7 +6,7 @@ export interface EnergyEntry {
   id: string
   month: string // "01" .. "12"
   year: string // "2024" etc.
-  consumption: number
+  consumption: number // Consumo da fatura
   received: number // Energia Injetada
   generation: number // Geração (real ou declarada)
 }
@@ -16,11 +16,14 @@ export interface EnergyMonthlyReportItem {
   month: string
   year: string
   month_label: string
-  consumption: number
+  invoice_consumption: number // Consumo informado na fatura
+  self_consumption: number // Autoconsumo: max(0, generation - received)
+  real_consumption: number // Consumo Real: invoice_consumption + max(0, generation - received)
+  consumption: number // Mantido como sinônimo de real_consumption para compatibilidade direta
   received: number
   generation: number // Real ou declarada
-  deficit: number // max(0, consumption - received)
-  balance: number // generation - consumption
+  deficit: number // max(0, invoice_consumption - received) -> o que ainda faltou compensar da fatura
+  balance: number // generation - real_consumption (ou generation - invoice_consumption)
   // Campos preenchidos quando modo = 'efficiency'
   hsp_value?: number
   estimated_generation?: number // Geração projetada
@@ -51,15 +54,22 @@ export interface EnergyReport {
   kitPower?: number
   expectedAvgGeneration?: number
   items: EnergyMonthlyReportItem[]
-  total_consumption: number
+  total_invoice_consumption: number // Total de consumo da fatura
+  total_self_consumption: number // Total de autoconsumo: (geração - injetada)
+  total_real_consumption: number // Total consumo real (fatura + autoconsumo)
+  total_consumption: number // Total consumo real (compatibilidade)
   total_received: number
   total_generation: number
-  total_deficit: number // soma dos déficits (consumo - injetada)
+  total_deficit: number // soma dos déficits da fatura (consumo fatura - injetada)
+  avg_invoice_consumption: number
+  avg_self_consumption: number
+  avg_real_consumption: number
   avg_consumption: number
   avg_received: number
   avg_generation: number
   avg_deficit: number
-  coverage_percent: number // (total_received / total_consumption) * 100
+  coverage_percent: number // (total_received / total_invoice_consumption) * 100
+  real_coverage_percent: number // (total_generation / total_real_consumption) * 100
   // Lógica de eficiência (quando modo = 'efficiency')
   total_projected?: number
   avg_idm?: number // (total_generation / total_projected) * 100
@@ -204,6 +214,9 @@ interface EnergyContextType {
   // Relatório gerado
   report: EnergyReport | null
   generateReport: () => Promise<void>
+  saveAnalysisToHistory: () => Promise<string>
+  isSaving: boolean
+  hasUnsavedChanges: boolean
   reset: () => void
   loadAnalysis: (record: any) => void
   currentAnalysisId: string | null
@@ -226,6 +239,8 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
   const [draftEntries, setDraftEntries] = useState<EnergyEntry[]>(getCurrentMonths())
   const [report, setReport] = useState<EnergyReport | null>(null)
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
 
   const selectLocation = (record: HspData) => {
     setHspRecord(record)
@@ -248,19 +263,40 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
       return (parseInt(a.month) || 0) - (parseInt(b.month) || 0)
     })
 
-    const totalConsumption = sorted.reduce((acc, e) => acc + (e.consumption || 0), 0)
+    const totalInvoiceConsumption = sorted.reduce((acc, e) => acc + (e.consumption || 0), 0)
     const totalReceived = sorted.reduce((acc, e) => acc + (e.received || 0), 0)
     const totalGeneration = sorted.reduce((acc, e) => acc + (e.generation || 0), 0)
+
+    // Autoconsumo mensal: max(0, geração - injetada)
+    const totalSelfConsumption = sorted.reduce(
+      (acc, e) => acc + Math.max(0, (e.generation || 0) - (e.received || 0)),
+      0,
+    )
+    // Consumo Real Total = fatura + autoconsumo
+    const totalRealConsumption = totalInvoiceConsumption + totalSelfConsumption
+
+    // Déficit da fatura: o que o cliente ainda precisou pagar à concessionária após compensar a injetada
     const totalDeficit = sorted.reduce(
       (acc, e) => acc + Math.max(0, (e.consumption || 0) - (e.received || 0)),
       0,
     )
     const count = sorted.length
-    const avgConsumption = count ? totalConsumption / count : 0
+    const avgInvoiceConsumption = count ? totalInvoiceConsumption / count : 0
+    const avgSelfConsumption = count ? totalSelfConsumption / count : 0
+    const avgRealConsumption = count ? totalRealConsumption / count : 0
+    const avgConsumption = avgRealConsumption
     const avgReceived = count ? totalReceived / count : 0
     const avgGeneration = count ? totalGeneration / count : 0
     const avgDeficit = count ? totalDeficit / count : 0
-    const coveragePercent = totalConsumption ? (totalReceived / totalConsumption) * 100 : 0
+
+    // Cobertura da fatura pela injetada
+    const coveragePercent = totalInvoiceConsumption
+      ? (totalReceived / totalInvoiceConsumption) * 100
+      : 0
+    // Cobertura do consumo real pela geração total
+    const realCoveragePercent = totalRealConsumption
+      ? (totalGeneration / totalRealConsumption) * 100
+      : 0
 
     const mode: 'efficiency' | 'declared' = isEfficiencyMode ? 'efficiency' : 'declared'
 
@@ -309,8 +345,17 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
     const items: EnergyMonthlyReportItem[] = sorted.map((entry) => {
       const mIdx = Math.max(0, Math.min(11, parseInt(entry.month) - 1))
       const monthLabel = `${MONTH_LABELS[mIdx] || ''}/${entry.year.slice(-2)}`
-      const deficit = Math.max(0, (entry.consumption || 0) - (entry.received || 0))
-      const balance = (entry.generation || 0) - (entry.consumption || 0)
+      const invoiceCons = entry.consumption || 0
+      const rec = entry.received || 0
+      const gen = entry.generation || 0
+      // Autoconsumo: diferença entre o gerado e o injetado (no mínimo 0)
+      const selfConsumption = Math.max(0, gen - rec)
+      // Consumo real = consumo da fatura + (gerado - injetado)
+      const realCons = invoiceCons + selfConsumption
+      // Déficit da fatura
+      const deficit = Math.max(0, invoiceCons - rec)
+      // Saldo global da unidade: geração total - consumo real
+      const balance = gen - realCons
 
       let estimated_generation: number | undefined
       let idm: number | undefined
@@ -320,8 +365,8 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
       if (adjusted_breakdown && adjusted_breakdown[mIdx]) {
         estimated_generation = adjusted_breakdown[mIdx].adjusted_generation
         hsp_value = adjusted_breakdown[mIdx].hsp
-        idm = estimated_generation > 0 ? (entry.generation / estimated_generation) * 100 : 0
-        delta = entry.generation - estimated_generation
+        idm = estimated_generation > 0 ? (gen / estimated_generation) * 100 : 0
+        delta = gen - estimated_generation
       }
 
       return {
@@ -329,9 +374,12 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
         month: entry.month,
         year: entry.year,
         month_label: monthLabel,
-        consumption: entry.consumption || 0,
-        received: entry.received || 0,
-        generation: entry.generation || 0,
+        invoice_consumption: invoiceCons,
+        self_consumption: selfConsumption,
+        real_consumption: realCons,
+        consumption: realCons, // Para compatibilidade
+        received: rec,
+        generation: gen,
         deficit,
         balance,
         hsp_value,
@@ -357,15 +405,22 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
       kitPower: isEfficiencyMode ? kitPower : undefined,
       expectedAvgGeneration: isEfficiencyMode ? expectedAvgGeneration : undefined,
       items,
-      total_consumption: totalConsumption,
+      total_invoice_consumption: totalInvoiceConsumption,
+      total_self_consumption: totalSelfConsumption,
+      total_real_consumption: totalRealConsumption,
+      total_consumption: totalRealConsumption,
       total_received: totalReceived,
       total_generation: totalGeneration,
       total_deficit: totalDeficit,
+      avg_invoice_consumption: avgInvoiceConsumption,
+      avg_self_consumption: avgSelfConsumption,
+      avg_real_consumption: avgRealConsumption,
       avg_consumption: avgConsumption,
       avg_received: avgReceived,
       avg_generation: avgGeneration,
       avg_deficit: avgDeficit,
       coverage_percent: coveragePercent,
+      real_coverage_percent: realCoveragePercent,
       total_projected: totalProjected,
       avg_idm: avgIdm,
       total_delta: totalDelta,
@@ -381,9 +436,19 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
     }
 
     setReport(reportData)
+    setHasUnsavedChanges(true)
+  }
 
-    // Persistir apenas inputs/dados informados para reativação fácil
+  const saveAnalysisToHistory = async (): Promise<string> => {
+    setIsSaving(true)
     try {
+      const sorted = [...draftEntries].sort((a, b) => {
+        const yearDiff = (parseInt(a.year) || 0) - (parseInt(b.year) || 0)
+        if (yearDiff !== 0) return yearDiff
+        return (parseInt(a.month) || 0) - (parseInt(b.month) || 0)
+      })
+
+      const mode: 'efficiency' | 'declared' = isEfficiencyMode ? 'efficiency' : 'declared'
       const inputsPayload = {
         mode,
         consumerName,
@@ -408,14 +473,18 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
         inputs: inputsPayload,
       }
 
+      let savedId = currentAnalysisId
       if (currentAnalysisId) {
         await pb.collection('energy_analyses').update(currentAnalysisId, payload)
       } else {
         const record = await pb.collection('energy_analyses').create(payload)
+        savedId = record.id
         setCurrentAnalysisId(record.id)
       }
-    } catch (e) {
-      console.error('Failed to save energy analysis', e)
+      setHasUnsavedChanges(false)
+      return savedId || ''
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -460,6 +529,7 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
     setHspRecord(null)
     setDraftEntries(getCurrentMonths())
     setReport(null)
+    setHasUnsavedChanges(false)
   }
 
   return (
@@ -486,6 +556,9 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
         setDraftEntries,
         report,
         generateReport,
+        saveAnalysisToHistory,
+        isSaving,
+        hasUnsavedChanges,
         reset,
         loadAnalysis,
         currentAnalysisId,

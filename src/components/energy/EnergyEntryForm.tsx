@@ -336,6 +336,11 @@ export function EnergyEntryForm({ onSuccess }: EnergyEntryFormProps) {
             </div>
           ) : (
             <div className="space-y-3">
+              <div className="p-3 bg-muted/40 rounded-lg border text-xs text-muted-foreground">
+                💡 <strong>Dica de cálculo:</strong> Informe o <em>Consumo na fatura</em>. O sistema
+                calculará automaticamente o <strong>Consumo Real</strong> somando o autoconsumo da
+                unidade (geração − energia injetada).
+              </div>
               {draftEntries.map((entry) => (
                 <div
                   key={entry.id}
@@ -387,10 +392,13 @@ export function EnergyEntryForm({ onSuccess }: EnergyEntryFormProps) {
                     </div>
                   </div>
 
-                  {/* Consumo */}
+                  {/* Consumo da Fatura */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">
-                      Consumo (kWh)
+                    <Label
+                      className="text-xs font-semibold text-muted-foreground"
+                      title="Consumo medido e faturado pela concessionária"
+                    >
+                      Consumo na fatura (kWh)
                     </Label>
                     <Input
                       type="number"

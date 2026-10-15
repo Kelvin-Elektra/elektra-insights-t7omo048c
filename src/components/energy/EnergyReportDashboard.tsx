@@ -13,22 +13,32 @@ import {
   AlertCircle,
   TrendingDown,
   Battery,
+  BatteryCharging,
   SunMedium,
   Download,
   Gauge,
   Zap,
   TrendingUp,
   Percent,
+  Save,
+  Check,
+  Receipt,
+  Flame,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 import { EnergyProjectedTable } from '@/components/energy/EnergyProjectedTable'
 import { EnergyVerticalReport } from '@/components/energy/EnergyVerticalReport'
 import { EnergyEfficiencySummary } from '@/components/energy/EnergyEfficiencySummary'
 
 const chartConfig3Bars = {
-  consumption: {
-    label: 'Consumo',
+  invoice_consumption: {
+    label: 'Consumo Fatura',
     color: 'hsl(var(--chart-1))',
+  },
+  real_consumption: {
+    label: 'Consumo Real (com autoconsumo)',
+    color: 'hsl(217 91% 55%)',
   },
   received: {
     label: 'Energia Injetada',
@@ -36,10 +46,10 @@ const chartConfig3Bars = {
   },
   generation: {
     label: 'Geração',
-    color: 'hsl(var(--chart-4, 217 91% 60%))',
+    color: 'hsl(var(--chart-4, 142 71% 45%))',
   },
   deficit: {
-    label: 'Déficit (Faltante)',
+    label: 'Déficit Fatura',
     color: 'hsl(var(--chart-3))',
   },
 } satisfies ChartConfig
@@ -56,8 +66,18 @@ const chartConfigEfficiency = {
 } satisfies ChartConfig
 
 export function EnergyReportDashboard() {
-  const { report, consumerName, ucNumber, cityName, state, kitPower, isEfficiencyMode } =
-    useEnergy()
+  const {
+    report,
+    consumerName,
+    ucNumber,
+    cityName,
+    state,
+    kitPower,
+    isEfficiencyMode,
+    saveAnalysisToHistory,
+    isSaving,
+    hasUnsavedChanges,
+  } = useEnergy()
 
   if (!report || report.items.length === 0) {
     return (
@@ -74,7 +94,8 @@ export function EnergyReportDashboard() {
 
   const chartDataBars = report.items.map((item) => ({
     month: item.month_label,
-    consumption: item.consumption,
+    invoice_consumption: item.invoice_consumption,
+    real_consumption: item.real_consumption,
     received: item.received,
     generation: item.generation,
     deficit: item.deficit,
@@ -108,6 +129,16 @@ export function EnergyReportDashboard() {
     setTimeout(() => {
       document.title = originalTitle
     }, 500)
+  }
+
+  const handleSave = async () => {
+    try {
+      await saveAnalysisToHistory()
+      toast.success('Relatório e parâmetros salvos no histórico!')
+    } catch (e) {
+      console.error(e)
+      toast.error('Erro ao salvar no histórico.')
+    }
   }
 
   return (
@@ -165,25 +196,47 @@ export function EnergyReportDashboard() {
       </div>
 
       {/* Action Bar */}
-      <div className="flex items-center justify-between print:hidden bg-muted/30 p-4 rounded-xl border border-border/50">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden bg-muted/30 p-4 rounded-xl border border-border/50">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold tracking-tight">
-            Relatório Completo — Consumo x Injetada x Geração
+            Relatório Completo — Balanço Energético & Geração
           </h2>
           <p className="text-sm text-muted-foreground">
             {consumerName ? `${consumerName} • ` : ''}
             {ucNumber ? `UC: ${ucNumber} • ` : ''}
             {hasEfficiency ? 'Com análise de eficiência (HSP)' : 'Geração declarada do período'}
-            {' • '}Data de análise: {new Date().toLocaleDateString('pt-BR')}
+            {' • '}Data: {new Date().toLocaleDateString('pt-BR')}
           </p>
         </div>
-        <Button
-          onClick={handlePrint}
-          className="shadow-sm transition-all hover:scale-105"
-          size="sm"
-        >
-          <Download className="h-4 w-4 mr-2" /> Gerar PDF
-        </Button>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          <Button
+            onClick={handleSave}
+            variant={hasUnsavedChanges ? 'default' : 'outline'}
+            disabled={isSaving}
+            className="shadow-sm transition-all"
+            size="sm"
+          >
+            {hasUnsavedChanges ? (
+              <Save className="h-4 w-4 mr-2" />
+            ) : (
+              <Check className="h-4 w-4 mr-2 text-emerald-500" />
+            )}
+            {isSaving
+              ? 'Salvando...'
+              : hasUnsavedChanges
+                ? 'Salvar no Histórico'
+                : 'Salvo no Histórico'}
+          </Button>
+
+          <Button
+            onClick={handlePrint}
+            variant="secondary"
+            className="shadow-sm transition-all"
+            size="sm"
+          >
+            <Download className="h-4 w-4 mr-2" /> Gerar PDF
+          </Button>
+        </div>
       </div>
 
       {/* Cards de Destaque Principais */}
@@ -272,13 +325,72 @@ export function EnergyReportDashboard() {
         </Card>
       )}
 
+      {/* Distinção Clara: Consumo da Fatura vs Consumo Real */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="border-primary/20 bg-primary/5 shadow-sm print:break-inside-avoid">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Receipt className="h-3.5 w-3.5 text-muted-foreground" /> Consumo na Fatura
+              </span>
+              <p className="text-2xl font-bold text-foreground">
+                {report.total_invoice_consumption.toLocaleString('pt-BR', {
+                  maximumFractionDigits: 1,
+                })}
+                <span className="text-xs font-medium text-muted-foreground ml-1">kWh</span>
+              </p>
+              <p className="text-[11px] text-muted-foreground">Medido na fatura da distribuidora</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-amber-500/20 bg-amber-500/5 shadow-sm print:break-inside-avoid">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Flame className="h-3.5 w-3.5" /> Autoconsumo Instantâneo
+              </span>
+              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                +
+                {report.total_self_consumption.toLocaleString('pt-BR', {
+                  maximumFractionDigits: 1,
+                })}
+                <span className="text-xs font-medium text-muted-foreground ml-1">kWh</span>
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Geração consumida na hora (gerado − injetado)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-emerald-500/30 bg-emerald-500/10 shadow-sm print:break-inside-avoid">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                <BatteryCharging className="h-3.5 w-3.5" /> Consumo Real (com autoconsumo)
+              </span>
+              <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                {report.total_real_consumption.toLocaleString('pt-BR', {
+                  maximumFractionDigits: 1,
+                })}
+                <span className="text-xs font-medium text-muted-foreground ml-1">kWh</span>
+              </p>
+              <p className="text-[11px] text-emerald-800/80 dark:text-emerald-300">
+                Fatura + Autoconsumo total da unidade
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Grid de Métricas Chave do Cruzamento */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
-          title="Consumo Total"
-          value={report.total_consumption}
-          icon={Battery}
-          color="text-chart-1"
+          title="Consumo Real Total"
+          value={report.total_real_consumption}
+          icon={BatteryCharging}
+          color="text-emerald-600"
         />
         <MetricCard
           title="Energia Injetada Total"
@@ -293,8 +405,8 @@ export function EnergyReportDashboard() {
           color="text-blue-500"
         />
         <MetricCard
-          title="Cobertura Injetada"
-          value={report.coverage_percent}
+          title="Cobertura da Geração / Consumo Real"
+          value={report.real_coverage_percent}
           suffix="%"
           icon={Percent}
           color="text-emerald-500"
@@ -303,11 +415,11 @@ export function EnergyReportDashboard() {
 
       {/* Gráficos de Cruzamento: Consumo x Injetada x Geração */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 print:flex print:flex-col print:items-center print:gap-8 print:w-full">
-        {/* Gráfico 1: Barras comparativas 3 grandezas */}
+        {/* Gráfico 1: Barras comparativas grandezas */}
         <Card className="shadow-sm print:break-inside-avoid print:shadow-none print:w-full print:border-none">
           <CardHeader className="pb-2 print:text-center">
             <CardTitle className="text-base font-semibold text-muted-foreground">
-              Consumo vs Energia Injetada vs Geração (kWh)
+              Consumo Fatura vs Consumo Real vs Injetada vs Geração (kWh)
             </CardTitle>
           </CardHeader>
           <CardContent className="print:flex print:justify-center print:items-center print:w-full print:p-0">
@@ -330,22 +442,28 @@ export function EnergyReportDashboard() {
                 />
                 <ChartLegend content={<ChartLegendContent />} className="mt-4" />
                 <Bar
-                  dataKey="consumption"
-                  fill="var(--color-consumption)"
+                  dataKey="invoice_consumption"
+                  fill="var(--color-invoice_consumption)"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={32}
+                  maxBarSize={24}
+                />
+                <Bar
+                  dataKey="real_consumption"
+                  fill="var(--color-real_consumption)"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={24}
                 />
                 <Bar
                   dataKey="received"
                   fill="var(--color-received)"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={32}
+                  maxBarSize={24}
                 />
                 <Bar
                   dataKey="generation"
                   fill="var(--color-generation)"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={32}
+                  maxBarSize={24}
                 />
               </BarChart>
             </ChartContainer>
@@ -356,7 +474,7 @@ export function EnergyReportDashboard() {
         <Card className="shadow-sm print:break-inside-avoid print:shadow-none mt-6 xl:mt-0 print:w-full print:border-none print:mt-10">
           <CardHeader className="pb-2 print:text-center">
             <CardTitle className="text-base font-semibold text-muted-foreground">
-              Evolução do Déficit Energético (Consumo - Injetada)
+              Evolução do Déficit na Fatura (Consumo Fatura − Injetada)
             </CardTitle>
           </CardHeader>
           <CardContent className="print:flex print:justify-center print:items-center print:w-full print:p-0">
@@ -472,11 +590,11 @@ export function EnergyReportDashboard() {
         </div>
       )}
 
-      {/* Tabela Resumo Consolidado de Todos os Meses (Consumo x Injetada x Geração x Balanço) */}
+      {/* Tabela Resumo Consolidado de Todos os Meses (Consumo Fatura x Autoconsumo x Consumo Real x Injetada x Geração x Saldo) */}
       <Card className="shadow-sm print:break-inside-avoid">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold text-muted-foreground">
-            Balanço Mensal Detalhado
+            Balanço Mensal Detalhado — Consumo Fatura, Autoconsumo e Consumo Real
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -485,13 +603,37 @@ export function EnergyReportDashboard() {
               <thead className="border-b bg-muted/40 text-muted-foreground font-semibold">
                 <tr>
                   <th className="py-2.5 px-3 text-left">Mês</th>
-                  <th className="py-2.5 px-3 text-right">Consumo (kWh)</th>
+                  <th
+                    className="py-2.5 px-3 text-right"
+                    title="Valor medido na fatura da distribuidora"
+                  >
+                    Consumo na Fatura (kWh)
+                  </th>
+                  <th
+                    className="py-2.5 px-3 text-right text-amber-600 dark:text-amber-400"
+                    title="Autoconsumo instantâneo: Geração - Injetada"
+                  >
+                    Autoconsumo (kWh)
+                  </th>
+                  <th
+                    className="py-2.5 px-3 text-right text-primary font-bold"
+                    title="Consumo Real = Fatura + Autoconsumo"
+                  >
+                    Consumo Real (com autoconsumo) (kWh)
+                  </th>
                   <th className="py-2.5 px-3 text-right">Injetada (kWh)</th>
                   <th className="py-2.5 px-3 text-right">
                     {hasEfficiency ? 'Geração Real (kWh)' : 'Geração (kWh)'}
                   </th>
-                  <th className="py-2.5 px-3 text-right">Déficit (kWh)</th>
-                  <th className="py-2.5 px-3 text-right">Saldo (Geração - Consumo)</th>
+                  <th
+                    className="py-2.5 px-3 text-right text-destructive"
+                    title="Consumo Fatura - Injetada"
+                  >
+                    Déficit Fatura (kWh)
+                  </th>
+                  <th className="py-2.5 px-3 text-right" title="Geração Total - Consumo Real">
+                    Saldo Global (kWh)
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -499,7 +641,13 @@ export function EnergyReportDashboard() {
                   <tr key={it.id} className="hover:bg-muted/20">
                     <td className="py-2.5 px-3 font-medium">{it.month_label}</td>
                     <td className="py-2.5 px-3 text-right">
-                      {it.consumption.toLocaleString('pt-BR')}
+                      {it.invoice_consumption.toLocaleString('pt-BR')}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-amber-600 dark:text-amber-400 font-medium">
+                      +{it.self_consumption.toLocaleString('pt-BR')}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-primary font-semibold">
+                      {it.real_consumption.toLocaleString('pt-BR')}
                     </td>
                     <td className="py-2.5 px-3 text-right">
                       {it.received.toLocaleString('pt-BR')}
@@ -523,7 +671,13 @@ export function EnergyReportDashboard() {
                 <tr className="bg-muted/60 font-bold border-t-2">
                   <td className="py-3 px-3">Total</td>
                   <td className="py-3 px-3 text-right">
-                    {report.total_consumption.toLocaleString('pt-BR')}
+                    {report.total_invoice_consumption.toLocaleString('pt-BR')}
+                  </td>
+                  <td className="py-3 px-3 text-right text-amber-600 dark:text-amber-400">
+                    +{report.total_self_consumption.toLocaleString('pt-BR')}
+                  </td>
+                  <td className="py-3 px-3 text-right text-primary">
+                    {report.total_real_consumption.toLocaleString('pt-BR')}
                   </td>
                   <td className="py-3 px-3 text-right">
                     {report.total_received.toLocaleString('pt-BR')}
@@ -536,18 +690,25 @@ export function EnergyReportDashboard() {
                   </td>
                   <td
                     className={`py-3 px-3 text-right ${
-                      report.total_generation - report.total_consumption >= 0
+                      report.total_generation - report.total_real_consumption >= 0
                         ? 'text-emerald-600'
                         : 'text-amber-600'
                     }`}
                   >
-                    {report.total_generation - report.total_consumption >= 0 ? '+' : ''}
-                    {(report.total_generation - report.total_consumption).toLocaleString('pt-BR')}
+                    {report.total_generation - report.total_real_consumption >= 0 ? '+' : ''}
+                    {(report.total_generation - report.total_real_consumption).toLocaleString(
+                      'pt-BR',
+                    )}
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
+          <p className="text-xs text-muted-foreground mt-3 italic">
+            * <strong>Consumo Real (com autoconsumo)</strong> = Consumo na Fatura + (Geração −
+            Energia Injetada). A energia gerada e consumida instantaneamente na unidade não transita
+            pelo medidor da distribuidora e é integralizada no consumo real do imóvel.
+          </p>
         </CardContent>
       </Card>
 
