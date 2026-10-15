@@ -206,13 +206,15 @@ export default function History() {
     if (selectedType === 'efficiency' && item.collection !== 'efficiency_analyses') return false
     if (selectedType === 'hybrid' && item.collection !== 'hybrid_analyses') return false
 
-    // Busca por texto
+    // Busca por notas/observação também
+    const notesText = item.rawRecord?.notes || item.rawRecord?.inputs?.notes || ''
     const q = search.toLowerCase()
     if (!q) return true
     return (
       item.consumerName.toLowerCase().includes(q) ||
       (item.ucNumber && item.ucNumber.toLowerCase().includes(q)) ||
-      item.typeLabel.toLowerCase().includes(q)
+      item.typeLabel.toLowerCase().includes(q) ||
+      notesText.toLowerCase().includes(q)
     )
   })
 

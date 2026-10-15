@@ -8,7 +8,7 @@ import {
   ChartLegendContent,
   type ChartConfig,
 } from '@/components/ui/chart'
-import { BarChart, Bar, XAxis, CartesianGrid, AreaChart, Area } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area, LabelList } from 'recharts'
 import {
   AlertCircle,
   TrendingDown,
@@ -16,8 +16,12 @@ import {
   BatteryWarning,
   SunMedium,
   Download,
+  Save,
+  Check,
+  FileText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 const chartConfig = {
   consumption: {
@@ -34,8 +38,38 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function ReportDashboard() {
-  const { reportEntries, consumerName, ucNumber } = useSolar()
+interface ReportDashboardProps {
+  onOpenEdit?: () => void
+}
+
+export function ReportDashboard({ onOpenEdit }: ReportDashboardProps = {}) {
+  const {
+    reportEntries,
+    consumerName,
+    ucNumber,
+    notes,
+    saveAnalysisToHistory,
+    isSaving,
+    hasUnsavedChanges,
+  } = useSolar()
+
+  const handleSave = async () => {
+    try {
+      await saveAnalysisToHistory()
+      toast.success('Análise de Consumo salva no Histórico!')
+    } catch (e: any) {
+      toast.error('Erro ao salvar no Histórico: ' + (e?.message || 'Tente novamente'))
+    }
+  }
+
+  const handlePrint = () => {
+    const originalTitle = document.title
+    document.title = `Análise energética - ${consumerName || 'Cliente'}`
+    window.print()
+    setTimeout(() => {
+      document.title = originalTitle
+    }, 1000)
+  }
 
   if (!reportEntries || reportEntries.length === 0) {
     return (
@@ -89,215 +123,298 @@ export function ReportDashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in-up print:m-0 print:space-y-6 max-w-5xl mx-auto">
-      <style>{`
-        @media print {
-          body { 
-            -webkit-print-color-adjust: exact; 
-            print-color-adjust: exact; 
-            background: white;
-            padding: 15mm; 
-          }
-          @page { margin: 0; size: A4 portrait; }
-          .lucide { width: 1.2rem; height: 1.2rem; }
-          
-          /* Remove browser headers/footers */
-          @page :first {
-            margin-top: 0;
-          }
-        }
-      `}</style>
-
-      {/* Print Header */}
-      <div className="hidden print:block text-center border-b pb-6 mb-6">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <SunMedium className="h-10 w-10 text-primary" />
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Relatório de Energia Solar
-          </h1>
-        </div>
-
-        {(consumerName || ucNumber) && (
-          <div className="flex justify-center items-center gap-6 text-base font-medium mb-4 bg-muted/20 py-2 rounded-lg inline-flex px-8">
-            {consumerName && (
-              <div>
-                <span className="text-muted-foreground font-normal">Consumidor:</span>{' '}
-                {consumerName}
-              </div>
-            )}
-            {ucNumber && (
-              <div>
-                <span className="text-muted-foreground font-normal">UC:</span> {ucNumber}
-              </div>
-            )}
-          </div>
-        )}
-
-        <p className="text-muted-foreground text-sm">
-          Análise de Energia da Unidade Consumidora • Gerado em{' '}
-          {new Date().toLocaleDateString('pt-BR')}
-        </p>
-      </div>
-
       {/* Action Bar */}
-      <div className="flex items-center justify-between print:hidden bg-muted/30 p-4 rounded-xl border border-border/50">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden bg-muted/30 p-4 rounded-xl border border-border/50">
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold tracking-tight">Análise de Desempenho</h2>
+          <h2 className="text-lg font-semibold tracking-tight">
+            Análise de Desempenho — Consumo x Injetada
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Visualize o balanço energético da sua unidade e exporte o documento.
+            {consumerName ? `${consumerName} • ` : ''}
+            {ucNumber ? `UC: ${ucNumber} • ` : ''}
+            Visualize o balanço energético e exporte o documento.
           </p>
         </div>
-        <Button
-          onClick={() => window.print()}
-          className="shadow-sm transition-all hover:scale-105"
-          size="sm"
-        >
-          <Download className="h-4 w-4 mr-2" /> Gerar PDF
-        </Button>
-      </div>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap">
+          {onOpenEdit && (
+            <Button onClick={onOpenEdit} variant="outline" size="sm" className="shadow-sm">
+              Reabrir para Edição
+            </Button>
+          )}
 
-      {/* Highlight Card */}
-      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 shadow-sm relative overflow-hidden print:shadow-none print:border-border">
-        <div className="absolute top-0 right-0 p-8 opacity-10 text-primary pointer-events-none">
-          <AlertCircle className="w-32 h-32" />
+          <Button
+            onClick={handleSave}
+            variant={hasUnsavedChanges ? 'default' : 'outline'}
+            disabled={isSaving}
+            className="shadow-sm transition-all"
+            size="sm"
+          >
+            {hasUnsavedChanges ? (
+              <Save className="h-4 w-4 mr-2" />
+            ) : (
+              <Check className="h-4 w-4 mr-2 text-emerald-500" />
+            )}
+            {isSaving
+              ? 'Salvando...'
+              : hasUnsavedChanges
+                ? 'Salvar no Histórico'
+                : 'Salvo no Histórico'}
+          </Button>
+
+          <Button
+            onClick={handlePrint}
+            variant="secondary"
+            className="shadow-sm transition-all"
+            size="sm"
+          >
+            <Download className="h-4 w-4 mr-2" /> Gerar PDF
+          </Button>
         </div>
-        <CardContent className="p-8 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-wider text-primary flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" /> Energia Faltante Total
-            </p>
-            <h2 className="text-5xl sm:text-6xl font-bold text-foreground tracking-tight">
-              {totalMissing.toLocaleString('pt-BR')}
-              <span className="text-2xl sm:text-3xl font-medium text-muted-foreground ml-2">
-                kWh
-              </span>
-            </h2>
-          </div>
-          <div className="text-left sm:text-right bg-background/50 backdrop-blur-sm p-4 rounded-xl border">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-              Período Analisado
-            </p>
-            <p className="text-2xl font-bold">
-              {count} <span className="text-base font-normal text-muted-foreground">meses</span>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard
-          title="Média de Consumo"
-          value={avgConsumption}
-          icon={Battery}
-          color="text-secondary"
-        />
-        <MetricCard
-          title="Média Injetada"
-          value={avgReceived}
-          icon={SunMedium}
-          color="text-primary"
-        />
-        <MetricCard
-          title="Cobertura"
-          value={coveragePercent}
-          suffix="%"
-          icon={BatteryWarning}
-          color="text-emerald-500"
-        />
-        <MetricCard
-          title="Déficit Médio"
-          value={avgMissing}
-          icon={TrendingDown}
-          color="text-destructive"
-        />
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 print:flex print:flex-col print:items-center print:gap-8 print:w-full">
-        <Card className="shadow-sm print:break-inside-avoid print:shadow-none print:w-full print:border-none">
-          <CardHeader className="pb-2 print:text-center">
-            <CardTitle className="text-base font-semibold text-muted-foreground">
-              Consumo vs Energia Recebida
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="print:flex print:justify-center print:items-center print:w-full print:p-0">
-            <ChartContainer
-              config={chartConfig}
-              className="h-[300px] w-full aspect-auto print:w-[650px] print:h-[320px] print:mx-auto"
-            >
-              <BarChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.5} />
-                <XAxis
-                  dataKey="monthFormatted"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={12}
-                  fontSize={12}
-                />
-                <ChartTooltip
-                  content={<ChartTooltipContent indicator="dot" />}
-                  cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
-                />
-                <ChartLegend content={<ChartLegendContent />} className="mt-4" />
-                <Bar
-                  dataKey="consumption"
-                  fill="var(--color-consumption)"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={40}
-                />
-                <Bar
-                  dataKey="received"
-                  fill="var(--color-received)"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={40}
-                />
-              </BarChart>
-            </ChartContainer>
+      {/* Relatório Impresso / Visual */}
+      <div className="report-print-container space-y-6 print:space-y-4">
+        {/* Print Header */}
+        <div className="hidden print:block text-center border-b pb-6 mb-6">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <SunMedium className="h-10 w-10 text-primary" />
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Relatório de Consumo x Energia Injetada
+            </h1>
+          </div>
+
+          {(consumerName || ucNumber) && (
+            <div className="flex justify-center items-center gap-6 text-base font-medium mb-4 bg-muted/20 py-2 rounded-lg inline-flex px-8">
+              {consumerName && (
+                <div>
+                  <span className="text-muted-foreground font-normal">Consumidor:</span>{' '}
+                  {consumerName}
+                </div>
+              )}
+              {ucNumber && (
+                <div>
+                  <span className="text-muted-foreground font-normal">UC:</span> {ucNumber}
+                </div>
+              )}
+            </div>
+          )}
+
+          <p className="text-muted-foreground text-sm">
+            Análise de Energia da Unidade Consumidora • Gerado em{' '}
+            {new Date().toLocaleDateString('pt-BR')}
+          </p>
+        </div>
+
+        {/* Highlight Card */}
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 shadow-sm relative overflow-hidden print:shadow-none print:border-border">
+          <div className="absolute top-0 right-0 p-8 opacity-10 text-primary pointer-events-none">
+            <AlertCircle className="w-32 h-32" />
+          </div>
+          <CardContent className="p-8 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-3">
+              <p className="text-sm font-semibold uppercase tracking-wider text-primary flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" /> Energia Faltante Total
+              </p>
+              <h2 className="text-5xl sm:text-6xl font-bold text-foreground tracking-tight">
+                {totalMissing.toLocaleString('pt-BR')}
+                <span className="text-2xl sm:text-3xl font-medium text-muted-foreground ml-2">
+                  kWh
+                </span>
+              </h2>
+            </div>
+            <div className="text-left sm:text-right bg-background/50 backdrop-blur-sm p-4 rounded-xl border">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                Período Analisado
+              </p>
+              <p className="text-2xl font-bold">
+                {count} <span className="text-base font-normal text-muted-foreground">meses</span>
+              </p>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm print:break-inside-avoid print:shadow-none mt-6 xl:mt-0 print:w-full print:border-none print:mt-10">
-          <CardHeader className="pb-2 print:text-center">
-            <CardTitle className="text-base font-semibold text-muted-foreground">
-              Evolução do Déficit Energético
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="print:flex print:justify-center print:items-center print:w-full print:p-0">
-            <ChartContainer
-              config={chartConfig}
-              className="h-[300px] w-full aspect-auto print:w-[650px] print:h-[320px] print:mx-auto"
-            >
-              <AreaChart data={chartData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.5} />
-                <XAxis
-                  dataKey="monthFormatted"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={12}
-                  fontSize={12}
-                />
-                <ChartTooltip content={<ChartTooltipContent indicator="line" />} />
-                <Area
-                  type="monotone"
-                  dataKey="deficit"
-                  name="deficit"
-                  stroke="var(--color-deficit)"
-                  fill="var(--color-deficit)"
-                  strokeWidth={3}
-                  fillOpacity={0.15}
-                />
-              </AreaChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <MetricCard
+            title="Média de Consumo"
+            value={avgConsumption}
+            icon={Battery}
+            color="text-secondary"
+          />
+          <MetricCard
+            title="Média Injetada"
+            value={avgReceived}
+            icon={SunMedium}
+            color="text-primary"
+          />
+          <MetricCard
+            title="Cobertura"
+            value={coveragePercent}
+            suffix="%"
+            icon={BatteryWarning}
+            color="text-emerald-500"
+          />
+          <MetricCard
+            title="Déficit Médio"
+            value={avgMissing}
+            icon={TrendingDown}
+            color="text-destructive"
+          />
+        </div>
 
-      {/* Print Footer */}
-      <div className="hidden print:block mt-auto pt-8 border-t text-center text-sm font-bold text-foreground print:break-inside-avoid w-full">
-        <p>Produto por Elektra Engenharia & Soluções</p>
-        <p className="text-xs text-muted-foreground font-normal mt-1">
-          Elektra Insights - Sistema de Análise Energética
-        </p>
+        {/* Charts */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 print:flex print:flex-col print:items-center print:gap-8 print:w-full">
+          <Card className="shadow-sm print:break-inside-avoid print:shadow-none print:w-full print:border-none">
+            <CardHeader className="pb-2 print:text-center">
+              <CardTitle className="text-base font-semibold text-muted-foreground">
+                Consumo vs Energia Recebida
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="print:flex print:justify-center print:items-center print:w-full print:p-0">
+              <ChartContainer
+                config={chartConfig}
+                className="h-[300px] w-full aspect-auto print:w-[650px] print:h-[320px] print:mx-auto"
+              >
+                <BarChart data={chartData} margin={{ top: 24, right: 16, left: 10, bottom: 0 }}>
+                  <CartesianGrid
+                    vertical={false}
+                    strokeDasharray="3 3"
+                    strokeOpacity={0.3}
+                    stroke="#94a3b8"
+                  />
+                  <XAxis
+                    dataKey="monthFormatted"
+                    tickLine={true}
+                    axisLine={{ stroke: '#cbd5e1' }}
+                    tickMargin={8}
+                    fontSize={12}
+                  />
+                  <YAxis
+                    tickLine={true}
+                    axisLine={{ stroke: '#cbd5e1' }}
+                    tickMargin={8}
+                    fontSize={12}
+                    unit=" kWh"
+                    width={65}
+                  />
+                  <ChartTooltip
+                    content={<ChartTooltipContent indicator="dot" />}
+                    cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
+                  />
+                  <ChartLegend content={<ChartLegendContent />} className="mt-4" />
+                  <Bar
+                    dataKey="consumption"
+                    fill="var(--color-consumption)"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={40}
+                  >
+                    <LabelList
+                      dataKey="consumption"
+                      position="top"
+                      fontSize={10}
+                      formatter={(val: number) => (val > 0 ? `${Math.round(val)}` : '')}
+                      className="fill-foreground font-semibold"
+                    />
+                  </Bar>
+                  <Bar
+                    dataKey="received"
+                    fill="var(--color-received)"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={40}
+                  >
+                    <LabelList
+                      dataKey="received"
+                      position="top"
+                      fontSize={10}
+                      formatter={(val: number) => (val > 0 ? `${Math.round(val)}` : '')}
+                      className="fill-foreground font-semibold"
+                    />
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm print:break-inside-avoid print:shadow-none mt-6 xl:mt-0 print:w-full print:border-none print:mt-10">
+            <CardHeader className="pb-2 print:text-center">
+              <CardTitle className="text-base font-semibold text-muted-foreground">
+                Evolução do Déficit Energético
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="print:flex print:justify-center print:items-center print:w-full print:p-0">
+              <ChartContainer
+                config={chartConfig}
+                className="h-[300px] w-full aspect-auto print:w-[650px] print:h-[320px] print:mx-auto"
+              >
+                <AreaChart data={chartData} margin={{ top: 24, right: 16, left: 10, bottom: 0 }}>
+                  <CartesianGrid
+                    vertical={false}
+                    strokeDasharray="3 3"
+                    strokeOpacity={0.3}
+                    stroke="#94a3b8"
+                  />
+                  <XAxis
+                    dataKey="monthFormatted"
+                    tickLine={true}
+                    axisLine={{ stroke: '#cbd5e1' }}
+                    tickMargin={8}
+                    fontSize={12}
+                  />
+                  <YAxis
+                    tickLine={true}
+                    axisLine={{ stroke: '#cbd5e1' }}
+                    tickMargin={8}
+                    fontSize={12}
+                    unit=" kWh"
+                    width={65}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent indicator="line" />} />
+                  <Area
+                    type="monotone"
+                    dataKey="deficit"
+                    name="Déficit (kWh)"
+                    stroke="var(--color-deficit)"
+                    fill="var(--color-deficit)"
+                    strokeWidth={3}
+                    fillOpacity={0.15}
+                  >
+                    <LabelList
+                      dataKey="deficit"
+                      position="top"
+                      fontSize={10}
+                      formatter={(val: number) => (val > 0 ? `${Math.round(val)}` : '')}
+                      className="fill-foreground font-semibold"
+                    />
+                  </Area>
+                </AreaChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Seção de Observação (exibida SEMPRE POR ÚLTIMO antes do rodapé) */}
+        {notes && notes.trim() && (
+          <Card className="shadow-sm print:break-inside-avoid border-primary/20 bg-muted/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-primary" /> Observações do Relatório
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
+                {notes}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Print Footer */}
+        <div className="hidden print:block mt-auto pt-8 border-t text-center text-sm font-bold text-foreground print:break-inside-avoid w-full">
+          <p>Produto por Elektra Engenharia & Soluções</p>
+          <p className="text-xs text-muted-foreground font-normal mt-1">
+            Elektra Insights - Sistema de Análise Energética
+          </p>
+        </div>
       </div>
     </div>
   )

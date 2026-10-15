@@ -1,6 +1,5 @@
 import { EnergyReportDashboard } from '@/components/energy/EnergyReportDashboard'
 import { EnergyEntryForm } from '@/components/energy/EnergyEntryForm'
-import { EnergyHistory } from '@/components/energy/EnergyHistory'
 import {
   Dialog,
   DialogContent,
@@ -47,11 +46,7 @@ export default function EnergyAnalysis() {
       </div>
 
       <div className="print:w-full print:block">
-        <EnergyReportDashboard />
-      </div>
-
-      <div className="print:hidden pt-4">
-        <EnergyHistory onReopenReport={() => setIsOpen(true)} />
+        <EnergyReportDashboard onOpenEdit={() => setIsOpen(true)} />
       </div>
     </div>
   )

@@ -2,8 +2,9 @@ import { useHybrid, type BatteryType } from '@/stores/hybrid-context'
 import type { HybridLoad } from '@/services/hybrid-analyses'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Plus, Trash2, BatteryCharging, Zap } from 'lucide-react'
+import { Plus, Trash2, BatteryCharging, Zap, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Select,
@@ -18,8 +19,17 @@ export interface HybridEntryFormProps {
 }
 
 export function HybridEntryForm({ onSuccess }: HybridEntryFormProps) {
-  const { customerName, setCustomerName, batteryType, setBatteryType, loads, setLoads, calculate } =
-    useHybrid()
+  const {
+    customerName,
+    setCustomerName,
+    batteryType,
+    setBatteryType,
+    notes,
+    setNotes,
+    loads,
+    setLoads,
+    calculate,
+  } = useHybrid()
 
   const addLoad = () => {
     setLoads([...loads, { id: crypto.randomUUID(), description: '', power: 0, hours: 0 }])
@@ -127,6 +137,28 @@ export function HybridEntryForm({ onSuccess }: HybridEntryFormProps) {
           >
             <Plus className="h-4 w-4 mr-2" /> Adicionar Carga
           </Button>
+        </div>
+
+        {/* Campo Observação */}
+        <div className="space-y-1.5 pt-2 border-t">
+          <Label
+            htmlFor="hybrid-notes"
+            className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"
+          >
+            <FileText className="h-3.5 w-3.5" /> Observação / Notas do Relatório
+          </Label>
+          <Textarea
+            id="hybrid-notes"
+            placeholder="Informações adicionais, parecer técnico, recomendações ou ressalvas sobre este dimensionamento..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+            className="text-sm resize-none"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Este texto será salvo junto com os dados e exibido ao final do relatório e no PDF
+            gerado.
+          </p>
         </div>
       </div>
 

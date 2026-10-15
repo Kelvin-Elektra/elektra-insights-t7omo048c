@@ -9,11 +9,16 @@ export interface HybridContextType {
   setCustomerName: React.Dispatch<React.SetStateAction<string>>
   batteryType: BatteryType
   setBatteryType: React.Dispatch<React.SetStateAction<BatteryType>>
+  notes: string
+  setNotes: React.Dispatch<React.SetStateAction<string>>
   loads: HybridLoad[]
   setLoads: React.Dispatch<React.SetStateAction<HybridLoad[]>>
   results: HybridResults | null
   currentAnalysisId: string | null
   calculate: () => Promise<void>
+  saveAnalysisToHistory: () => Promise<string>
+  isSaving: boolean
+  hasUnsavedChanges: boolean
   reset: () => void
   loadAnalysis: (record: any) => void
 }
@@ -40,59 +45,76 @@ export const calculateResults = (loads: HybridLoad[], batteryType: BatteryType):
 export const HybridProvider = ({ children }: { children: ReactNode }) => {
   const [customerName, setCustomerName] = useState('')
   const [batteryType, setBatteryType] = useState<BatteryType>('100Ah')
+  const [notes, setNotes] = useState('')
   const [loads, setLoads] = useState<HybridLoad[]>([
     { id: crypto.randomUUID(), description: '', power: 0, hours: 0 },
   ])
   const [results, setResults] = useState<HybridResults | null>(null)
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
 
   const calculate = useCallback(async () => {
     if (!customerName || loads.length === 0) return
     const calc = calculateResults(loads, batteryType)
     setResults(calc)
+    setHasUnsavedChanges(true)
+  }, [customerName, batteryType, loads])
 
-    const payload = {
-      company: pb.authStore.record?.company,
-      user: pb.authStore.record?.id,
-      customer_name: customerName,
-      battery_type: batteryType,
-      loads,
-      results: calc,
-    }
-
+  const saveAnalysisToHistory = useCallback(async (): Promise<string> => {
+    setIsSaving(true)
     try {
+      const calc = results || calculateResults(loads, batteryType)
+      const payload = {
+        company: pb.authStore.record?.company,
+        user: pb.authStore.record?.id,
+        customer_name: customerName,
+        battery_type: batteryType,
+        notes,
+        loads,
+        results: calc,
+      }
+
+      let savedId = currentAnalysisId
       if (currentAnalysisId) {
         await pb.collection('hybrid_analyses').update(currentAnalysisId, payload)
       } else {
         const record = await pb.collection('hybrid_analyses').create(payload)
+        savedId = record.id
         setCurrentAnalysisId(record.id)
       }
-    } catch (e) {
-      console.error('Failed to save hybrid analysis', e)
+      setHasUnsavedChanges(false)
+      return savedId || ''
+    } finally {
+      setIsSaving(false)
     }
-  }, [customerName, batteryType, loads, currentAnalysisId])
+  }, [customerName, batteryType, notes, loads, results, currentAnalysisId])
 
   const reset = useCallback(() => {
     setCurrentAnalysisId(null)
     setCustomerName('')
     setBatteryType('100Ah')
+    setNotes('')
     setLoads([{ id: crypto.randomUUID(), description: '', power: 0, hours: 0 }])
     setResults(null)
+    setHasUnsavedChanges(false)
   }, [])
 
   const loadAnalysis = useCallback((record: any) => {
     setCurrentAnalysisId(record.id)
     setCustomerName(record.customer_name || '')
     setBatteryType(record.battery_type || '100Ah')
+    setNotes(record.notes || '')
     setLoads(
       (record.loads || []).map((l: any) => ({
         id: l.id || crypto.randomUUID(),
         description: l.description || '',
-        power: l.power || 0,
-        hours: l.hours || 0,
+        power: Number(l.power) || 0,
+        hours: Number(l.hours) || 0,
       })),
     )
-    setResults(record.results || null)
+    setResults(null)
+    setHasUnsavedChanges(false)
   }, [])
 
   return (
@@ -102,11 +124,16 @@ export const HybridProvider = ({ children }: { children: ReactNode }) => {
         setCustomerName,
         batteryType,
         setBatteryType,
+        notes,
+        setNotes,
         loads,
         setLoads,
         results,
         currentAnalysisId,
         calculate,
+        saveAnalysisToHistory,
+        isSaving,
+        hasUnsavedChanges,
         reset,
         loadAnalysis,
       }}

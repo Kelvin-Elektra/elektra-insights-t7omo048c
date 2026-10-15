@@ -1,8 +1,9 @@
 import { useEfficiency, EfficiencyEntry } from '@/stores/efficiency-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Plus, Trash2, Zap, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Zap, AlertCircle, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Select,
@@ -27,6 +28,8 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
     setCityName,
     state,
     setState,
+    notes,
+    setNotes,
     kitPower,
     setKitPower,
     expectedAvgGeneration,
@@ -303,6 +306,28 @@ export function EfficiencyEntryForm({ onSuccess }: EfficiencyEntryFormProps) {
           >
             <Plus className="h-4 w-4 mr-2" /> Adicionar Mês Anterior
           </Button>
+        </div>
+
+        {/* Campo Observação */}
+        <div className="space-y-1.5 pt-2 border-t">
+          <Label
+            htmlFor="eff-notes"
+            className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5"
+          >
+            <FileText className="h-3.5 w-3.5" /> Observação / Notas do Relatório
+          </Label>
+          <Textarea
+            id="eff-notes"
+            placeholder="Informações adicionais, parecer técnico, recomendações ou ressalvas sobre esta análise..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+            className="text-sm resize-none"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Este texto será salvo junto com os dados e exibido ao final do relatório e no PDF
+            gerado.
+          </p>
         </div>
       </div>
       <div className="pt-6 border-t mt-4">

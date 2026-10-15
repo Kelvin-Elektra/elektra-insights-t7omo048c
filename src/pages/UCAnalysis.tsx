@@ -18,7 +18,12 @@ export default function UCAnalysis() {
   return (
     <div className="space-y-6 print:m-0 print:p-0 max-w-5xl mx-auto">
       <div className="flex justify-between items-center print:hidden border-b pb-4">
-        <h1 className="text-2xl font-bold tracking-tight">Relatório da UC</h1>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Análise de Consumo x Injetada</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Balanço da unidade consumidora entre energia consumida e energia injetada.
+          </p>
+        </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="shadow-sm hover:border-primary/50">
@@ -38,7 +43,7 @@ export default function UCAnalysis() {
         </Dialog>
       </div>
       <div className="print:w-full print:block">
-        <ReportDashboard />
+        <ReportDashboard onOpenEdit={() => setIsOpen(true)} />
       </div>
     </div>
   )

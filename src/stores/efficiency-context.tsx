@@ -22,6 +22,7 @@ export interface EfficiencyReportItem {
 
 export interface EfficiencyReport {
   consumerName?: string
+  notes?: string
   items: EfficiencyReportItem[]
   avg_idm: number
   total_real: number
@@ -126,6 +127,8 @@ interface EfficiencyContextType {
   setCityName: React.Dispatch<React.SetStateAction<string>>
   state: string
   setState: React.Dispatch<React.SetStateAction<string>>
+  notes: string
+  setNotes: React.Dispatch<React.SetStateAction<string>>
   kitPower: number
   setKitPower: React.Dispatch<React.SetStateAction<number>>
   expectedAvgGeneration: number
@@ -134,6 +137,9 @@ interface EfficiencyContextType {
   setDraftEntries: React.Dispatch<React.SetStateAction<EfficiencyEntry[]>>
   report: EfficiencyReport | null
   generateReport: () => Promise<void>
+  saveAnalysisToHistory: () => Promise<string>
+  isSaving: boolean
+  hasUnsavedChanges: boolean
   reset: () => void
   loadAnalysis: (record: any) => void
   currentAnalysisId: string | null
@@ -153,6 +159,7 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
   const [consumerName, setConsumerName] = useState('')
   const [cityName, setCityName] = useState('')
   const [state, setState] = useState('')
+  const [notes, setNotes] = useState('')
   const [kitPower, setKitPower] = useState(0)
   const [expectedAvgGeneration, setExpectedAvgGeneration] = useState(0)
   const [draftEntries, setDraftEntries] = useState<EfficiencyEntry[]>(() => {
@@ -162,6 +169,8 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
   const [report, setReport] = useState<EfficiencyReport | null>(null)
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null)
   const [hspRecord, setHspRecord] = useState<HspData | null>(null)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
 
   const selectLocation = (record: HspData) => {
     setHspRecord(record)
@@ -231,6 +240,7 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
 
     const reportData: EfficiencyReport = {
       consumerName,
+      notes,
       items,
       avg_idm: avgIdm,
       total_real: totalReal,
@@ -245,53 +255,84 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
     }
     reportData.summary = generateSummary(reportData)
     setReport(reportData)
+    setHasUnsavedChanges(true)
+  }
 
-    const firstEntry = draftEntries[0]
-    const payload = {
-      company: pb.authStore.record?.company,
-      user: pb.authStore.record?.id,
-      city_name: cityName,
-      state,
-      kit_power: kitPower,
-      expected_avg_generation: expectedAvgGeneration,
-      month: firstEntry?.month || '',
-      year: firstEntry?.year || '',
-      real_generation: totalReal,
-      report_data: reportData,
-    }
-
+  const saveAnalysisToHistory = async (): Promise<string> => {
+    setIsSaving(true)
     try {
+      const firstEntry = draftEntries[0]
+      const totalReal = draftEntries.reduce((acc, i) => acc + (Number(i.real_generation) || 0), 0)
+
+      const inputsPayload = {
+        consumerName,
+        cityName,
+        state,
+        kitPower,
+        expectedAvgGeneration,
+        notes,
+        draftEntries,
+      }
+
+      const payload = {
+        company: pb.authStore.record?.company,
+        user: pb.authStore.record?.id,
+        city_name: cityName,
+        state,
+        kit_power: kitPower,
+        expected_avg_generation: expectedAvgGeneration,
+        month: firstEntry?.month || '',
+        year: firstEntry?.year || '',
+        real_generation: totalReal,
+        notes,
+        report_data: {
+          ...report,
+          consumerName,
+          notes,
+          inputs: inputsPayload,
+        },
+      }
+
+      let savedId = currentAnalysisId
       if (currentAnalysisId) {
         await pb.collection('efficiency_analyses').update(currentAnalysisId, payload)
       } else {
         const record = await pb.collection('efficiency_analyses').create(payload)
+        savedId = record.id
         setCurrentAnalysisId(record.id)
       }
-    } catch (e) {
-      console.error('Failed to save efficiency analysis', e)
+      setHasUnsavedChanges(false)
+      return savedId || ''
+    } finally {
+      setIsSaving(false)
     }
   }
 
   const loadAnalysis = (record: any) => {
     setCurrentAnalysisId(record.id)
-    setConsumerName(record.report_data?.consumerName || '')
-    setCityName(record.city_name || '')
-    setState(record.state || '')
-    setKitPower(record.kit_power || 0)
-    setExpectedAvgGeneration(record.expected_avg_generation || 0)
+    const rd = record.report_data || {}
+    const inputs = rd.inputs || {}
+    setConsumerName(inputs.consumerName || rd.consumerName || '')
+    setCityName(inputs.cityName || record.city_name || '')
+    setState(inputs.state || record.state || '')
+    setNotes(inputs.notes || record.notes || rd.notes || '')
+    setKitPower(inputs.kitPower || record.kit_power || 0)
+    setExpectedAvgGeneration(inputs.expectedAvgGeneration || record.expected_avg_generation || 0)
     setHspRecord(null)
-    const rd = record.report_data
-    if (rd && rd.items) {
+
+    const entries = inputs.draftEntries || rd.items || []
+    if (entries.length > 0) {
       setDraftEntries(
-        rd.items.map((i: any) => ({
+        entries.map((i: any) => ({
           id: i.id || crypto.randomUUID(),
           month: i.month,
           year: i.year,
-          real_generation: i.real_generation,
+          real_generation: Number(i.real_generation) || 0,
         })),
       )
-      setReport(rd)
     }
+    setReport(null)
+    setHasUnsavedChanges(false)
   }
 
   const reset = () => {
@@ -299,12 +340,14 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
     setConsumerName('')
     setCityName('')
     setState('')
+    setNotes('')
     setKitPower(0)
     setExpectedAvgGeneration(0)
     setHspRecord(null)
     const { month, year } = getCurrentMonth()
     setDraftEntries([{ id: crypto.randomUUID(), month, year, real_generation: 0 }])
     setReport(null)
+    setHasUnsavedChanges(false)
   }
 
   return (
@@ -316,6 +359,8 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
         setCityName,
         state,
         setState,
+        notes,
+        setNotes,
         kitPower,
         setKitPower,
         expectedAvgGeneration,
@@ -324,6 +369,9 @@ export const EfficiencyProvider = ({ children }: { children: ReactNode }) => {
         setDraftEntries,
         report,
         generateReport,
+        saveAnalysisToHistory,
+        isSaving,
+        hasUnsavedChanges,
         reset,
         loadAnalysis,
         currentAnalysisId,

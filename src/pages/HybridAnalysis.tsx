@@ -1,6 +1,5 @@
 import { HybridDashboard } from '@/components/hybrid/HybridDashboard'
 import { HybridEntryForm } from '@/components/hybrid/HybridEntryForm'
-import { HybridHistory } from '@/components/hybrid/HybridHistory'
 import {
   Dialog,
   DialogContent,
@@ -39,10 +38,7 @@ export default function HybridAnalysis() {
         </Dialog>
       </div>
       <div className="print:w-full print:block">
-        <HybridDashboard />
-      </div>
-      <div className="print:hidden">
-        <HybridHistory />
+        <HybridDashboard onOpenEdit={() => setIsOpen(true)} />
       </div>
     </div>
   )

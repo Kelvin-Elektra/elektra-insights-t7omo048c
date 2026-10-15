@@ -14,10 +14,15 @@ interface SolarContextType {
   setConsumerName: React.Dispatch<React.SetStateAction<string>>
   ucNumber: string
   setUcNumber: React.Dispatch<React.SetStateAction<string>>
+  notes: string
+  setNotes: React.Dispatch<React.SetStateAction<string>>
   draftEntries: SolarEntry[]
   setDraftEntries: React.Dispatch<React.SetStateAction<SolarEntry[]>>
   reportEntries: SolarEntry[] | null
   generateReport: () => Promise<void>
+  saveAnalysisToHistory: () => Promise<string>
+  isSaving: boolean
+  hasUnsavedChanges: boolean
   reset: () => void
   loadAnalysis: (record: any) => void
   currentAnalysisId: string | null
@@ -40,9 +45,12 @@ const getCurrentMonths = (): SolarEntry[] => {
 export const SolarProvider = ({ children }: { children: ReactNode }) => {
   const [consumerName, setConsumerName] = useState<string>('')
   const [ucNumber, setUcNumber] = useState<string>('')
+  const [notes, setNotes] = useState<string>('')
   const [draftEntries, setDraftEntries] = useState<SolarEntry[]>(getCurrentMonths())
   const [reportEntries, setReportEntries] = useState<SolarEntry[] | null>(null)
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState<boolean>(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
 
   const generateReport = async () => {
     // Sort entries by month (MM/YYYY) ascending
@@ -53,23 +61,39 @@ export const SolarProvider = ({ children }: { children: ReactNode }) => {
       return (mA || '').localeCompare(mB || '')
     })
     setReportEntries(sorted)
+    setHasUnsavedChanges(true)
+  }
 
+  const saveAnalysisToHistory = async (): Promise<string> => {
+    setIsSaving(true)
     try {
+      const sorted = [...draftEntries].sort((a, b) => {
+        const [mA, yA] = a.month.split('/')
+        const [mB, yB] = b.month.split('/')
+        if (yA !== yB) return (yA || '').localeCompare(yB || '')
+        return (mA || '').localeCompare(mB || '')
+      })
+
       const payload = {
         company: pb.authStore.record?.company,
         consumer_name: consumerName,
         uc_number: ucNumber,
+        notes,
         report_data: sorted,
       }
 
+      let savedId = currentAnalysisId
       if (currentAnalysisId) {
         await pb.collection('uc_analyses').update(currentAnalysisId, payload)
       } else {
         const record = await pb.collection('uc_analyses').create(payload)
+        savedId = record.id
         setCurrentAnalysisId(record.id)
       }
-    } catch (e) {
-      console.error('Failed to save analysis', e)
+      setHasUnsavedChanges(false)
+      return savedId || ''
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -77,16 +101,21 @@ export const SolarProvider = ({ children }: { children: ReactNode }) => {
     setCurrentAnalysisId(record.id)
     setConsumerName(record.consumer_name || '')
     setUcNumber(record.uc_number || '')
-    setDraftEntries(record.report_data || [])
-    setReportEntries(record.report_data || [])
+    setNotes(record.notes || '')
+    const entries = Array.isArray(record.report_data) ? record.report_data : []
+    setDraftEntries(entries)
+    setReportEntries(entries)
+    setHasUnsavedChanges(false)
   }
 
   const reset = () => {
     setCurrentAnalysisId(null)
     setConsumerName('')
     setUcNumber('')
+    setNotes('')
     setDraftEntries(getCurrentMonths())
     setReportEntries(null)
+    setHasUnsavedChanges(false)
   }
 
   return (
@@ -96,10 +125,15 @@ export const SolarProvider = ({ children }: { children: ReactNode }) => {
         setConsumerName,
         ucNumber,
         setUcNumber,
+        notes,
+        setNotes,
         draftEntries,
         setDraftEntries,
         reportEntries,
         generateReport,
+        saveAnalysisToHistory,
+        isSaving,
+        hasUnsavedChanges,
         reset,
         loadAnalysis,
         currentAnalysisId,

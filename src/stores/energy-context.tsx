@@ -53,6 +53,7 @@ export interface EnergyReport {
   state?: string
   kitPower?: number
   expectedAvgGeneration?: number
+  notes?: string
   items: EnergyMonthlyReportItem[]
   total_invoice_consumption: number // Total de consumo da fatura
   total_self_consumption: number // Total de autoconsumo: (geração - injetada)
@@ -196,6 +197,8 @@ interface EnergyContextType {
   setConsumerName: React.Dispatch<React.SetStateAction<string>>
   ucNumber: string
   setUcNumber: React.Dispatch<React.SetStateAction<string>>
+  notes: string
+  setNotes: React.Dispatch<React.SetStateAction<string>>
   // Campos de eficiência
   cityName: string
   setCityName: React.Dispatch<React.SetStateAction<string>>
@@ -228,6 +231,7 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
   const [isEfficiencyMode, setIsEfficiencyMode] = useState<boolean>(true)
   const [consumerName, setConsumerName] = useState<string>('')
   const [ucNumber, setUcNumber] = useState<string>('')
+  const [notes, setNotes] = useState<string>('')
 
   // Campos de eficiência
   const [cityName, setCityName] = useState<string>('')
@@ -404,6 +408,7 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
       state: isEfficiencyMode ? state : undefined,
       kitPower: isEfficiencyMode ? kitPower : undefined,
       expectedAvgGeneration: isEfficiencyMode ? expectedAvgGeneration : undefined,
+      notes,
       items,
       total_invoice_consumption: totalInvoiceConsumption,
       total_self_consumption: totalSelfConsumption,
@@ -458,6 +463,7 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
         kitPower: isEfficiencyMode ? kitPower : 0,
         expectedAvgGeneration: isEfficiencyMode ? expectedAvgGeneration : 0,
         draftEntries: sorted,
+        notes,
       }
 
       const payload = {
@@ -470,6 +476,7 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
         kit_power: isEfficiencyMode ? kitPower : 0,
         expected_avg_generation: isEfficiencyMode ? expectedAvgGeneration : 0,
         mode,
+        notes,
         inputs: inputsPayload,
       }
 
@@ -498,6 +505,7 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
     setUcNumber(inputs.ucNumber || record.uc_number || '')
     setCityName(inputs.cityName || record.city_name || '')
     setState(inputs.state || record.state || '')
+    setNotes(inputs.notes || record.notes || '')
     setKitPower(inputs.kitPower || record.kit_power || 0)
     setExpectedAvgGeneration(inputs.expectedAvgGeneration || record.expected_avg_generation || 0)
     setHspRecord(null)
@@ -524,6 +532,7 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
     setUcNumber('')
     setCityName('')
     setState('')
+    setNotes('')
     setKitPower(0)
     setExpectedAvgGeneration(0)
     setHspRecord(null)
@@ -541,6 +550,8 @@ export const EnergyProvider = ({ children }: { children: ReactNode }) => {
         setConsumerName,
         ucNumber,
         setUcNumber,
+        notes,
+        setNotes,
         cityName,
         setCityName,
         state,

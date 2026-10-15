@@ -43,6 +43,63 @@
     --chart-5: 33 100% 50%;
   }
 
+  /* Estilos específicos de impressão para gerar relatório limpo */
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 12mm 10mm;
+    }
+
+    body {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      background: white !important;
+      color: black !important;
+      font-size: 11pt;
+    }
+
+    /* Ocultar elementos fora do relatório: sidebar, header, banners, dialogs, botões */
+    header,
+    nav,
+    aside,
+    footer:not(.print\:block),
+    .print\:hidden,
+    button,
+    [role='dialog'],
+    [data-radix-portal] {
+      display: none !important;
+    }
+
+    /* Layout full width e sem sombras/overflows estranhos */
+    main,
+    .max-w-5xl,
+    .max-w-7xl,
+    .container {
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+    }
+
+    /* Regras de quebra de página */
+    .report-print-container {
+      width: 100% !important;
+      display: block !important;
+    }
+
+    .report-print-container .card,
+    .report-print-container > div,
+    .print\:break-inside-avoid {
+      break-inside: avoid !important;
+      page-break-inside: avoid !important;
+    }
+
+    /* Assegurar que gráficos e tabelas impressos tenham contraste correto */
+    svg {
+      max-width: 100% !important;
+    }
+  }
+
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;

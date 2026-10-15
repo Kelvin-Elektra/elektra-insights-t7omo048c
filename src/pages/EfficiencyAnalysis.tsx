@@ -1,6 +1,5 @@
 import { EfficiencyDashboard } from '@/components/efficiency/EfficiencyDashboard'
 import { EfficiencyEntryForm } from '@/components/efficiency/EfficiencyEntryForm'
-import { EfficiencyHistory } from '@/components/efficiency/EfficiencyHistory'
 import {
   Dialog,
   DialogContent,
@@ -29,9 +28,9 @@ export default function EfficiencyAnalysis() {
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader className="mb-4 border-b pb-4">
-              <DialogTitle className="text-2xl">Editar Dados de Eficiencia</DialogTitle>
+              <DialogTitle className="text-2xl">Editar Dados de Eficiência</DialogTitle>
               <DialogDescription className="text-base">
-                Atualize os parametros do kit solar e geracao real.
+                Atualize os parâmetros do kit solar e geração real.
               </DialogDescription>
             </DialogHeader>
             <EfficiencyEntryForm onSuccess={() => setIsOpen(false)} />
@@ -39,10 +38,7 @@ export default function EfficiencyAnalysis() {
         </Dialog>
       </div>
       <div className="print:w-full print:block">
-        <EfficiencyDashboard />
-      </div>
-      <div className="print:hidden">
-        <EfficiencyHistory />
+        <EfficiencyDashboard onOpenEdit={() => setIsOpen(true)} />
       </div>
     </div>
   )
