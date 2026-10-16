@@ -44,6 +44,32 @@ export default function ManualLogin() {
 
     try {
       const res = await pb.collection('users').authWithPassword(email.trim(), password)
+
+      // Validação de status ativo do usuário
+      if (res.record.active === false) {
+        pb.authStore.clear()
+        setError(
+          'Seu usuário está inativo ou teve o acesso revogado. Entre em contato com o administrador.',
+        )
+        return
+      }
+
+      // Validação de status da empresa (se houver empresa vinculada)
+      if (res.record.company) {
+        try {
+          const comp = await pb.collection('companies').getOne(res.record.company)
+          if (comp.status === 'inactive') {
+            pb.authStore.clear()
+            setError(
+              'A sua empresa está com o acesso inativo no momento. Entre em contato com o suporte.',
+            )
+            return
+          }
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+
       setUser(res.record)
       navigate('/')
     } catch (err: any) {

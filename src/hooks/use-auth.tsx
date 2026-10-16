@@ -56,8 +56,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     checkSSO()
 
+    // Se o usuário na sessão estiver inativo, desconecta automaticamente
+    if (pb.authStore.record && pb.authStore.record.active === false) {
+      pb.authStore.clear()
+      setUser(null)
+      setError('Sua conta foi inativada. Por favor, contate o administrador.')
+    }
+
     const unsubscribe = pb.authStore.onChange((_token, record) => {
-      setUser(record)
+      if (record && record.active === false) {
+        pb.authStore.clear()
+        setUser(null)
+        setError('Sua conta foi inativada. Por favor, contate o administrador.')
+      } else {
+        setUser(record)
+      }
     })
 
     return () => {

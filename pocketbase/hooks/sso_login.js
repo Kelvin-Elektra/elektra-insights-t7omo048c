@@ -18,8 +18,8 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
     )
   }
 
-  const userId = payload.id || payload.sub
-  const email = payload.email
+  const userId = payload.id || payload.sub || payload.hub_user_id || ''
+  const email = (payload.email || '').toString().trim().toLowerCase()
 
   if (!userId && !email) {
     return e.badRequestError('Nenhum identificador encontrado no token')
@@ -56,7 +56,7 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
         companyRecord = new Record(companiesCol)
         companyRecord.set('name', fallbackCompanyName)
         companyRecord.set('hub_company_id', companyHubId)
-        companyRecord.set('status', 'active')
+        companyRecord.set('status', (companyPayload && companyPayload.status) || 'active')
         $app.saveNoValidate(companyRecord)
         $app.logger().info('SSO Company Sync', 'status', 'created', 'companyId', companyRecord.id)
       } catch (err) {
@@ -102,7 +102,10 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
     }
   }
 
-  // 2. Sync User
+  // 2. Resolução do Usuário (ordem obrigatória):
+  //    - Chave primária: hub_user_id
+  //    - Fallback: email
+  //    - Auto-correção: se localizou por email e hub_user_id estiver vazio ou diferente, atualiza
   let userRecord = null
   if (userId) {
     try {
@@ -113,7 +116,38 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
   if (!userRecord && email) {
     try {
       userRecord = $app.findAuthRecordByEmail('users', email)
+      // Auto-correção: vincular hub_user_id se estava diferente/vazio
+      if (userRecord && userId && userRecord.getString('hub_user_id') !== userId) {
+        userRecord.set('hub_user_id', userId)
+      }
     } catch (_) {}
+  }
+
+  // Se o usuário já existe e está inativo, bloquear acesso SSO
+  if (userRecord) {
+    const isUserActive = userRecord.getBool('active')
+    if (userRecord.collection().fields.getByName('active') && !isUserActive) {
+      $app
+        .logger()
+        .warn(
+          'SSO Login Blocked: User inactive',
+          'userId',
+          userRecord.id,
+          'email',
+          userRecord.getString('email'),
+        )
+      return e.forbiddenError(
+        'Seu usuário está inativo ou teve o acesso revogado no Hub. Entre em contato com o administrador.',
+      )
+    }
+  }
+
+  // Verificar se a empresa vinculada está inativa
+  if (companyRecord && companyRecord.getString('status') === 'inactive') {
+    $app.logger().warn('SSO Login Blocked: Company inactive', 'companyId', companyRecord.id)
+    return e.forbiddenError(
+      'A empresa vinculada está com acesso inativo no momento. Entre em contato com o administrador.',
+    )
   }
 
   const usersCol = $app.findCollectionByNameOrId('users')
@@ -151,7 +185,7 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
       return e.internalServerError('failed to sync user data')
     }
   } else {
-    // Create new user
+    // Create new user (novo usuário ativo por padrão)
     userRecord = new Record(usersCol)
     if (email) {
       userRecord.setEmail(email)
@@ -161,6 +195,7 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
 
     userRecord.setPassword($security.randomString(15) + 'A1!')
     userRecord.setVerified(true)
+    userRecord.set('active', true)
 
     userRecord.set('name', payload.name || '')
     userRecord.set('phone', payload.phone || '')
@@ -194,8 +229,6 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
   }
 
   // 3. Manually generate Auth Token
-  // We avoid $apis.recordAuthResponse to prevent nil pointer dereferences
-  // when password metadata or internal token auth states are misconfigured.
   const jwtPayload = {
     id: fetchedRecord.id,
     type: 'auth',

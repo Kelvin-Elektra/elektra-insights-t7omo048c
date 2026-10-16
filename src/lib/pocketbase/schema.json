@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-15T15:45:18.371Z",
+  "generatedAt": "2026-10-16T01:02:29.561Z",
   "collections": [
     {
       "name": "users",
@@ -87,6 +87,12 @@
           "required": false,
           "system": false,
           "collectionRef": "companies"
+        },
+        {
+          "name": "active",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
