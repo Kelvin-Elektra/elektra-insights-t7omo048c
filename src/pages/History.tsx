@@ -25,6 +25,7 @@ import {
   SunMedium,
   BatteryCharging,
   Gauge,
+  Scale,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -37,12 +38,18 @@ import {
 } from '@/components/ui/select'
 import { useEfficiency } from '@/stores/efficiency-context'
 import { useHybrid } from '@/stores/hybrid-context'
+import { useCompatibility, TARIFF_CLASSES } from '@/stores/compatibility-context'
 
-type AnalysisType = 'all' | 'energy' | 'uc' | 'efficiency' | 'hybrid'
+type AnalysisType = 'all' | 'energy' | 'uc' | 'efficiency' | 'hybrid' | 'compatibility'
 
 interface UnifiedAnalysis {
   id: string
-  collection: 'energy_analyses' | 'uc_analyses' | 'efficiency_analyses' | 'hybrid_analyses'
+  collection:
+    | 'energy_analyses'
+    | 'uc_analyses'
+    | 'efficiency_analyses'
+    | 'hybrid_analyses'
+    | 'compatibility_analyses'
   typeLabel: string
   created: string
   consumerName: string
@@ -58,6 +65,7 @@ export default function History() {
   const { loadAnalysis: loadSolarAnalysis } = useSolar()
   const { loadAnalysis: loadEfficiencyAnalysis } = useEfficiency()
   const { loadAnalysis: loadHybridAnalysis } = useHybrid()
+  const { loadAnalysis: loadCompatibilityAnalysis } = useCompatibility()
   const navigate = useNavigate()
 
   const [allAnalyses, setAllAnalyses] = useState<UnifiedAnalysis[]>([])
@@ -74,40 +82,49 @@ export default function History() {
         filter = `company = "${user.company}"`
       }
 
-      const [energyRecords, ucRecords, effRecords, hybridRecords] = await Promise.all([
-        pb
-          .collection('energy_analyses')
-          .getFullList({
-            sort: '-created',
-            filter,
-            expand: 'company',
-          })
-          .catch(() => []),
-        pb
-          .collection('uc_analyses')
-          .getFullList({
-            sort: '-created',
-            filter,
-            expand: 'company',
-          })
-          .catch(() => []),
-        pb
-          .collection('efficiency_analyses')
-          .getFullList({
-            sort: '-created',
-            filter,
-            expand: 'company',
-          })
-          .catch(() => []),
-        pb
-          .collection('hybrid_analyses')
-          .getFullList({
-            sort: '-created',
-            filter,
-            expand: 'company',
-          })
-          .catch(() => []),
-      ])
+      const [energyRecords, ucRecords, effRecords, hybridRecords, compatRecords] =
+        await Promise.all([
+          pb
+            .collection('energy_analyses')
+            .getFullList({
+              sort: '-created',
+              filter,
+              expand: 'company',
+            })
+            .catch(() => []),
+          pb
+            .collection('uc_analyses')
+            .getFullList({
+              sort: '-created',
+              filter,
+              expand: 'company',
+            })
+            .catch(() => []),
+          pb
+            .collection('efficiency_analyses')
+            .getFullList({
+              sort: '-created',
+              filter,
+              expand: 'company',
+            })
+            .catch(() => []),
+          pb
+            .collection('hybrid_analyses')
+            .getFullList({
+              sort: '-created',
+              filter,
+              expand: 'company',
+            })
+            .catch(() => []),
+          pb
+            .collection('compatibility_analyses')
+            .getFullList({
+              sort: '-created',
+              filter,
+              expand: 'company',
+            })
+            .catch(() => []),
+        ])
 
       const list: UnifiedAnalysis[] = []
 
@@ -169,6 +186,22 @@ export default function History() {
         })
       })
 
+      // 5. Compatibilidade de Consumo
+      compatRecords.forEach((r) => {
+        list.push({
+          id: r.id,
+          collection: 'compatibility_analyses',
+          typeLabel: 'Compatibilidade de Consumo',
+          created: r.created,
+          consumerName: r.consumer_name || 'Não informado',
+          extraBadge: r.tariff_class
+            ? TARIFF_CLASSES.find((c) => c.value === r.tariff_class)?.label
+            : undefined,
+          companyName: r.expand?.company?.name,
+          rawRecord: r,
+        })
+      })
+
       // Ordenar decrescente pela data de criação
       list.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime())
       setAllAnalyses(list)
@@ -199,12 +232,18 @@ export default function History() {
     fetchHistory()
   })
 
+  useRealtime('compatibility_analyses', () => {
+    fetchHistory()
+  })
+
   const filteredAnalyses = allAnalyses.filter((item) => {
     // Filtro por tipo
     if (selectedType === 'energy' && item.collection !== 'energy_analyses') return false
     if (selectedType === 'uc' && item.collection !== 'uc_analyses') return false
     if (selectedType === 'efficiency' && item.collection !== 'efficiency_analyses') return false
     if (selectedType === 'hybrid' && item.collection !== 'hybrid_analyses') return false
+    if (selectedType === 'compatibility' && item.collection !== 'compatibility_analyses')
+      return false
 
     // Busca por notas/observação também
     const notesText = item.rawRecord?.notes || item.rawRecord?.inputs?.notes || ''
@@ -236,6 +275,10 @@ export default function History() {
         loadHybridAnalysis(item.rawRecord)
         navigate('/hybrid-analysis')
         break
+      case 'compatibility_analyses':
+        loadCompatibilityAnalysis(item.rawRecord)
+        navigate('/compatibility-analysis')
+        break
     }
   }
 
@@ -249,6 +292,8 @@ export default function History() {
         return <Gauge className="h-4 w-4 text-blue-500" />
       case 'hybrid_analyses':
         return <BatteryCharging className="h-4 w-4 text-emerald-500" />
+      case 'compatibility_analyses':
+        return <Scale className="h-4 w-4 text-purple-500" />
     }
   }
 
@@ -306,6 +351,10 @@ export default function History() {
                     <SelectItem value="hybrid">
                       Sistema Híbrido (
                       {allAnalyses.filter((a) => a.collection === 'hybrid_analyses').length})
+                    </SelectItem>
+                    <SelectItem value="compatibility">
+                      Compatibilidade de Consumo (
+                      {allAnalyses.filter((a) => a.collection === 'compatibility_analyses').length})
                     </SelectItem>
                   </SelectContent>
                 </Select>

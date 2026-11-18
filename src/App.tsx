@@ -7,6 +7,8 @@ import { SolarProvider } from '@/stores/solar-context'
 import { EfficiencyProvider } from '@/stores/efficiency-context'
 import { HybridProvider } from '@/stores/hybrid-context'
 import { EnergyProvider } from '@/stores/energy-context'
+import { CompatibilityProvider } from '@/stores/compatibility-context'
+import CompatibilityAnalysis from './pages/CompatibilityAnalysis'
 
 import Dashboard from './pages/Dashboard'
 import ModulesTest from './pages/ModulesTest'
@@ -77,56 +79,59 @@ const App = () => (
         <EfficiencyProvider>
           <HybridProvider>
             <EnergyProvider>
-              <BrowserRouter>
-                <TooltipProvider>
-                  <Toaster />
-                  <Sonner />
-                  <Routes>
-                    <Route path="/login" element={<Index />} />
-                    <Route path="/manual-login" element={<ManualLogin />} />
-                    <Route path="/elektra-admin" element={<ElektraAdminLogin />} />
-                    <Route
-                      element={
-                        <ProtectedRoute>
-                          <Layout />
-                        </ProtectedRoute>
-                      }
-                    >
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/history" element={<History />} />
-                      <Route path="/uc-analysis" element={<UCAnalysis />} />
-                      <Route path="/efficiency-analysis" element={<EfficiencyAnalysis />} />
-                      <Route path="/hybrid-analysis" element={<HybridAnalysis />} />
-                      <Route path="/energy-analysis" element={<EnergyAnalysis />} />
+              <CompatibilityProvider>
+                <BrowserRouter>
+                  <TooltipProvider>
+                    <Toaster />
+                    <Sonner />
+                    <Routes>
+                      <Route path="/login" element={<Index />} />
+                      <Route path="/manual-login" element={<ManualLogin />} />
+                      <Route path="/elektra-admin" element={<ElektraAdminLogin />} />
                       <Route
-                        path="/settings"
                         element={
-                          <AdminProtectedRoute>
-                            <Settings />
-                          </AdminProtectedRoute>
+                          <ProtectedRoute>
+                            <Layout />
+                          </ProtectedRoute>
                         }
-                      />
-                      <Route
-                        path="/modules-test"
-                        element={
-                          <ElektraProtectedRoute>
-                            <ModulesTest />
-                          </ElektraProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/hsp-lookup"
-                        element={
-                          <ElektraProtectedRoute>
-                            <HspLookup />
-                          </ElektraProtectedRoute>
-                        }
-                      />
-                    </Route>
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </TooltipProvider>
-              </BrowserRouter>
+                      >
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/history" element={<History />} />
+                        <Route path="/uc-analysis" element={<UCAnalysis />} />
+                        <Route path="/efficiency-analysis" element={<EfficiencyAnalysis />} />
+                        <Route path="/hybrid-analysis" element={<HybridAnalysis />} />
+                        <Route path="/energy-analysis" element={<EnergyAnalysis />} />
+                        <Route path="/compatibility-analysis" element={<CompatibilityAnalysis />} />
+                        <Route
+                          path="/settings"
+                          element={
+                            <AdminProtectedRoute>
+                              <Settings />
+                            </AdminProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/modules-test"
+                          element={
+                            <ElektraProtectedRoute>
+                              <ModulesTest />
+                            </ElektraProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/hsp-lookup"
+                          element={
+                            <ElektraProtectedRoute>
+                              <HspLookup />
+                            </ElektraProtectedRoute>
+                          }
+                        />
+                      </Route>
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </TooltipProvider>
+                </BrowserRouter>
+              </CompatibilityProvider>
             </EnergyProvider>
           </HybridProvider>
         </EfficiencyProvider>

@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useNavigate } from 'react-router-dom'
-import { FileBarChart2, SunMedium, Gauge, BatteryCharging, Zap } from 'lucide-react'
+import { FileBarChart2, SunMedium, Gauge, BatteryCharging, Zap, Scale } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import { DataEntryForm } from '@/components/solar/DataEntryForm'
 import { EfficiencyEntryForm } from '@/components/efficiency/EfficiencyEntryForm'
 import { HybridEntryForm } from '@/components/hybrid/HybridEntryForm'
 import { EnergyEntryForm } from '@/components/energy/EnergyEntryForm'
+import { CompatibilityEntryForm } from '@/components/compatibility/CompatibilityEntryForm'
 import { useAuth } from '@/hooks/use-auth'
 import { useState } from 'react'
 
@@ -22,6 +23,7 @@ export default function ModulesAccess() {
   const [efficiencyOpen, setEfficiencyOpen] = useState(false)
   const [hybridOpen, setHybridOpen] = useState(false)
   const [energyOpen, setEnergyOpen] = useState(false)
+  const [compatibilityOpen, setCompatibilityOpen] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuth()
 
@@ -183,6 +185,45 @@ export default function ModulesAccess() {
               onSuccess={() => {
                 setHybridOpen(false)
                 navigate('/hybrid-analysis')
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* NOVO MÓDULO: Limite por Compatibilidade de Consumo */}
+        <Dialog open={compatibilityOpen} onOpenChange={setCompatibilityOpen}>
+          <DialogTrigger asChild>
+            <Card className="hover:shadow-lg transition-all border-primary/30 cursor-pointer group p-4 border-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-2xl group-hover:text-primary transition-colors">
+                  <Scale className="h-8 w-8 text-primary shrink-0" />
+                  Limite por Compatibilidade de Consumo
+                </CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Estimativa regulatória da potência de microgeração pela REN ANEEL 1.000/2021, art.
+                  73-A, III (itens 8.12 a 8.19 do Manual de Instruções).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full sm:w-auto hover:scale-[1.02] transition-transform text-lg py-6 px-8 shadow-md">
+                  <Scale className="mr-2 h-5 w-5" />
+                  Iniciar Análise de Compatibilidade
+                </Button>
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="mb-4 border-b pb-4">
+              <DialogTitle className="text-2xl">Limite por Compatibilidade de Consumo</DialogTitle>
+              <DialogDescription className="text-base">
+                Informe o consumo médio e a classe tarifária para calcular o limite de potência de
+                microgeração.
+              </DialogDescription>
+            </DialogHeader>
+            <CompatibilityEntryForm
+              onSuccess={() => {
+                setCompatibilityOpen(false)
+                navigate('/compatibility-analysis')
               }}
             />
           </DialogContent>

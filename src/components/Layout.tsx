@@ -5,6 +5,7 @@ import { useSolar } from '@/stores/solar-context'
 import { useEfficiency } from '@/stores/efficiency-context'
 import { useEnergy } from '@/stores/energy-context'
 import { useHybrid } from '@/stores/hybrid-context'
+import { useCompatibility } from '@/stores/compatibility-context'
 import { useAuth } from '@/hooks/use-auth'
 import { useEffect, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
@@ -16,6 +17,7 @@ export default function Layout() {
   const { reset: resetEfficiency } = useEfficiency()
   const { reset: resetEnergy } = useEnergy()
   const { reset: resetHybrid } = useHybrid()
+  const { reset: resetCompatibility } = useCompatibility()
   const { user, logout } = useAuth()
   const location = useLocation()
 
@@ -28,11 +30,14 @@ export default function Layout() {
       resetEnergy()
     } else if (location.pathname === '/hybrid-analysis') {
       resetHybrid()
+    } else if (location.pathname === '/compatibility-analysis') {
+      resetCompatibility()
     } else {
       resetSolar()
       resetEfficiency()
       resetEnergy()
       resetHybrid()
+      resetCompatibility()
     }
   }
 
