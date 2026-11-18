@@ -25,6 +25,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const checkSSO = async () => {
+      // Valida a sessão persistida: um token antigo/inválido (ex.: emitido pelo
+      // esquema anterior de JWT custom) passa em authStore.isValid no cliente,
+      // mas o PocketBase o rejeita — toda requisição passa a rodar como guest e
+      // o create em analyses volta 400 "Failed to create record.". Um refresh
+      // barato confirma se o token ainda é aceito; se não for, limpa a sessão.
+      if (pb.authStore.isValid) {
+        try {
+          await pb.collection('users').authRefresh()
+        } catch (_) {
+          pb.authStore.clear()
+          setUser(null)
+        }
+      }
+
       const params = new URLSearchParams(window.location.search)
       const ssoToken = params.get('sso_token')
 

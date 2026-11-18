@@ -130,6 +130,12 @@ export const CompatibilityProvider = ({ children }: { children: ReactNode }) => 
         hasDaytimeMetering,
         daytimeConsumption: daytime ?? 0,
       }
+      if (!pb.authStore.isValid || !pb.authStore.record?.company) {
+        throw new Error(
+          'Sessão expirada ou inválida. Recarregue a página ou entre novamente pelo Hub para salvar no Histórico.',
+        )
+      }
+
       const payload = {
         company: pb.authStore.record?.company,
         user: pb.authStore.record?.id,
