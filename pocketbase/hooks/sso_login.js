@@ -228,15 +228,15 @@ routerAdd('GET', '/backend/v1/sso', (e) => {
     return e.internalServerError('failed to fetch user data')
   }
 
-  // 3. Manually generate Auth Token
-  const jwtPayload = {
-    id: fetchedRecord.id,
-    type: 'auth',
-    collectionId: usersCol.id,
-  }
-
-  const jwtSecret = $secrets.get('SSO_SECRET') || $security.randomString(32)
-  const authToken = $security.createJWT(jwtPayload, jwtSecret, 604800) // 7 days duration
+  // 3. Token de autenticação NATIVO do PocketBase.
+  //    IMPORTANTE: não gerar JWT manual com $security.createJWT + SSO_SECRET.
+  //    O PocketBase valida a assinatura do token de autenticação com o secret
+  //    da própria collection (users.authToken.secret) — um JWT assinado com
+  //    SSO_SECRET é rejeitado e TODA requisição do usuário passa a rodar como
+  //    guest: create em analyses volta 400 "Failed to create record.", view de
+  //    companies volta 404 e as listas do Histórico ficam vazias.
+  //    newAuthToken() emite um token válido, assinado com o secret correto.
+  const authToken = fetchedRecord.newAuthToken()
 
   $app.logger().info('SSO Login Success', 'userId', fetchedRecord.id)
 
